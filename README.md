@@ -8,6 +8,15 @@ Each plugin lives in `plugins/<id>/`. Its format-1 ZIP contains `plugin.json` an
 
 ## Publish a release
 
-1. Set the version in the plugin manifest and build the ZIP with `python3 scripts/package-plugin.py <id>`.
-2. Publish the ZIP as a GitHub Release asset. Use the tag `<id>-v<version>` and attach `dist/<id>-<version>.zip`. GitHub's automatic source archive contains the whole repository.
-3. Update `catalogue.json` with the published version. The Hub reads this index from `main` and builds the release download URL from the ID and version.
+Set the same new version in the plugin manifest and `catalogue.json`, then open a
+PR. The **Publish plugin releases** workflow checks that the catalogue entries can
+be packaged. After the PR merges into `main`, it publishes each new version as
+a GitHub Release tagged `<id>-v<version>` with the asset `<id>-<version>.zip`.
+The Hub can install the plugin as soon as the release asset is available.
+
+Use a new version for changes to a published package. The workflow skips releases
+that already have their ZIP. Run the workflow manually on `main` to retry a failed
+publish.
+
+For a local ZIP, run `python3 scripts/package-plugin.py <id>`. To check the whole
+catalogue locally, run `python3 scripts/package-plugin.py --catalogue`.

@@ -1,0 +1,69 @@
+name: Publish plugin releases
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [catalogue.json, 'plugins/**', scripts/package-plugin.py, .github/workflows/publish-plugins.yml]
+  push:
+    branches: [main]
+    paths: [catalogue.json, 'plugins/**', scripts/package-plugin.py, .github/workflows/publish-plugins.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate and package catalogue entries
+        run: python3 scripts/package-plugin.py --catalogue
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        with:
+          name: plugin-zips
+          path: dist/*.zip
+          if-no-files-found: error
+
+  publish:
+    if: github.repository == 'RSPSApp/tsps-plugins' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-plugin-releases
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: plugin-zips
+          path: packages
+      - name: Publish missing versions
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for zip in packages/*.zip; do
+            filename=${zip##*/}
+            stem=${filename%.zip}
+            version=${stem##*-}
+            id=${stem%-*}
+            tag="$id-v$version"
+
+            if release=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft,assets 2>/dev/null); then
+              if jq -e --arg name "$filename" '.isDraft == false and any(.assets[]; .name == $name)' <<< "$release" >/dev/null; then
+                echo "$tag is already published."
+                continue
+              fi
+              echo "::error::Release $tag already exists but is unpublished or missing $filename."
+              exit 1
+            fi
+
+            gh release create "$tag" "$zip" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "$id $version" \
+              --notes "Plugin Hub package built from commit $GITHUB_SHA."
+          done
