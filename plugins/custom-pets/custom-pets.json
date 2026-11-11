@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "pets": [
+    {
+      "npcId": 12980,
+      "itemId": 54000,
+      "name": "Fennec fox",
+      "scale": 70,
+      "lines": ["Yip!", "*The fox's ears twitch.*", "Yelp!"],
+      "chathead": "fennec-fox/chathead.dat"
+    },
+    {
+      "npcId": 3105,
+      "itemId": 54002,
+      "name": "Hans",
+      "lines": ["Help! I've been turned into a marketable pet!"]
+    }
+  ]
+}

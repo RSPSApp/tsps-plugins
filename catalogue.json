@@ -8,6 +8,15 @@
       "category": "Community",
       "version": "1.0.0",
       "description": "Greets players with a welcome message in chat when they log in."
+    },
+    {
+      "id": "custom-pets",
+      "name": "Custom Pets",
+      "author": "Qunai",
+      "category": "Community",
+      "version": "1.0.0",
+      "description": "Turns any NPC into a pet from custom-pets.json: a follower summoned from a custom item, with Talk-to lines, an optional chathead and reclaiming from Probita.",
+      "screenshot": "custom-pets.webp"
     }
   ]
 }

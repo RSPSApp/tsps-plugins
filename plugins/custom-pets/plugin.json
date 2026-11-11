@@ -1,0 +1,7 @@
+{
+  "format": 1,
+  "id": "custom-pets",
+  "name": "CustomPets",
+  "version": "1.0.0",
+  "description": "Turns any NPC into a pet from custom-pets.json: a follower summoned from a custom item, with Talk-to lines, an optional chathead and reclaiming from Probita."
+}
