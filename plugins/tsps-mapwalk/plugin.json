@@ -1,0 +1,7 @@
+{
+  "format": 1,
+  "id": "tsps-mapwalk",
+  "name": "TspsMapWalk",
+  "version": "1.0.0",
+  "description": "Plan and walk to a tile selected on the world map. Includes its own travel engine and route data. The Move here menu uses the TSPS fork client or the accompanying client source patch. Exported from fork commit abe8043af."
+}

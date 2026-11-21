@@ -1,0 +1,7 @@
+{
+  "format": 1,
+  "id": "tsps-autoskill",
+  "name": "TspsAutoSkill",
+  "version": "1.0.0",
+  "description": "Auto-Skill automates supported skilling, combat, and bank trips. Exported from TSPS fork commit abe8043af. Fork-specific activities and desktop notifications require the matching TSPS integrations."
+}

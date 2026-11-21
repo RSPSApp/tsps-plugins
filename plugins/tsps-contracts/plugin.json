@@ -1,0 +1,7 @@
+{
+  "format": 1,
+  "id": "tsps-contracts",
+  "name": "TspsContracts",
+  "version": "1.0.0",
+  "description": "Daily, weekly, and monthly Skilling Contracts, with contract pass XP and satchel rewards. Exported from TSPS fork commit abe8043af. The fork client supports player-local reset times."
+}
