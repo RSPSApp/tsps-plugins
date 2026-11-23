@@ -25,6 +25,30 @@
             "category": "Community",
             "version": "1.0.2",
             "description": "World chat announcements for level 99, new Collection Log slots, pets, valuable drops and first joins."
+        },
+        {
+            "id": "tsps-contracts",
+            "name": "Skilling Contracts",
+            "author": "Luka",
+            "category": "Community",
+            "version": "1.0.0",
+            "description": "Adds daily, weekly, and monthly skilling contracts, with contract pass XP and satchel rewards. Player-local resets require Luka's TSPS fork client."
+        },
+        {
+            "id": "tsps-mapwalk",
+            "name": "World Map Walk",
+            "author": "Luka",
+            "category": "Community",
+            "version": "1.0.0",
+            "description": "Routes players to a selected tile, including through doors and gates. The world map's Move here option requires Luka's TSPS fork client or the client source patch in the plugin directory."
+        },
+        {
+            "id": "tsps-autoskill",
+            "name": "Auto-Skill",
+            "author": "Luka",
+            "category": "Community",
+            "version": "1.0.0",
+            "description": "Automates supported skilling, combat, and bank trips on your TSPS server. Fork-specific activities and desktop notifications require matching TSPS integrations."
         }
     ]
 }

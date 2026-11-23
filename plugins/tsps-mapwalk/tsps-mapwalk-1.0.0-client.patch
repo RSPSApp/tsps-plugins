@@ -1,0 +1,98 @@
+diff --git a/client/game/plugins/tspsmapwalk/MapWalkPlugin.ts b/client/game/plugins/tspsmapwalk/MapWalkPlugin.ts
+new file mode 100644
+index 000000000..da7f8b53d
+--- /dev/null
++++ b/client/game/plugins/tspsmapwalk/MapWalkPlugin.ts
+@@ -0,0 +1,72 @@
++import type { SimpleMenuEntry } from "../../../ui/menu/MenuEngine";
++import { send } from "../../../network/ServerConnection";
++import { Plugin, type PluginDescriptor } from "../../../runelite/client/plugins/Plugin";
++
++/** The channel the picked tile goes to the server on; its half does the walking. */
++export const CHANNEL = "mapwalk:move-to";
++
++/** The option, as the game words the same thing on the ground ("Walk here"). */
++export const OPTION = "Move here";
++
++/** The world is 16384 tiles square and four floors deep; anything else is not a tile. */
++const MAX_COORD = 16383;
++const MAX_PLANE = 3;
++
++export type MapWalkPoint = { x: number; y: number; plane: number };
++
++/** What picking Move here sends the server half: the tile, on the walk's own channel. */
++export function moveToMessage(tile: MapWalkPoint) {
++    return {
++        type: "plugin_message" as const,
++        payload: { channel: CHANNEL, data: { x: tile.x, y: tile.y, z: tile.plane } },
++    };
++}
++
++/** What a right-click on the map hands over, checked before it's worth sending. */
++export function readMapPoint(point: MapWalkPoint | undefined): MapWalkPoint | null {
++    if (!point) return null;
++    const x = point.x | 0;
++    const y = point.y | 0;
++    const plane = point.plane | 0;
++    if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || !Number.isFinite(point.plane)) return null;
++    if (x < 0 || x > MAX_COORD || y < 0 || y > MAX_COORD) return null;
++    if (plane < 0 || plane > MAX_PLANE) return null;
++    return { x, y, plane };
++}
++
++/**
++ * When enabled, this plugin adds Move here to the world map's right-click menu and sends the selected tile to
++ * the server's MapWalk plugin. It is off by default so clients can connect to servers without MapWalk and keep
++ * the standard world map menu.
++ *
++ * The entry goes in through tsps's own world-map menu seam (`ClientPlugin.worldMapMenuEntries`, the one its
++ * Shortest Path plugin uses), so it reads as one of the map's own options: under an icon's own options, above
++ * Shortest Path's Set Target and above Cancel. The map's left-click is untouched -- this menu only ever opens on a
++ * right-click -- so clicking the map still jumps the view as it always did.
++ */
++export class MapWalkPlugin extends Plugin {
++    static descriptor: PluginDescriptor = {
++        name: "World Map Walk",
++        description: "Adds Move here to the world map. Enable only on servers with the MapWalk server plugin installed.",
++        tags: ["world map", "map", "walk", "travel", "move", "pathfinding"],
++        enabledByDefault: false,
++        configKey: "tspsmapwalk",
++    };
++
++    /** The option on the map's right-click menu. Never throws: a send that fails leaves the map as it was. */
++    worldMapMenuEntries(point: MapWalkPoint): SimpleMenuEntry[] {
++        if (!this.isStarted()) return [];
++        const tile = readMapPoint(point);
++        if (!tile) return [];
++        return [{
++            option: OPTION,
++            onClick: () => {
++                try {
++                    send(moveToMessage(tile));
++                } catch {
++                    // No connection: nothing was asked for, so nothing happens.
++                }
++            },
++        }];
++    }
++}
+diff --git a/client/runelite/client/plugins/index.ts b/client/runelite/client/plugins/index.ts
+index 2d36b1641..581e624eb 100644
+--- a/client/runelite/client/plugins/index.ts
++++ b/client/runelite/client/plugins/index.ts
+@@ -67,6 +67,7 @@ import { XpTrackerPlugin } from "../../../game/plugins/xptracker/XpTrackerPlugin
+ import { XpGlobesPlugin } from "../../../game/plugins/xpglobes/XpGlobesPlugin";
+ import { CustomXpDropsPlugin } from "../../../game/plugins/customxpdrops/CustomXpDropsPlugin";
+ import { GuidePlugin } from "../../../game/plugins/optimalquestguide/GuidePlugin";
++import { MapWalkPlugin } from "../../../game/plugins/tspsmapwalk/MapWalkPlugin"; // CUSTOM(mapwalk)
+ import { ShortestPathPlugin } from "../../../game/plugins/shortestpath/ShortestPathPlugin";
+ import { AgilityTrackerPlugin } from "../../../game/plugins/agilitytracker/AgilityTrackerPlugin";
+ import { GatheringTrackerPlugin } from "../../../game/plugins/gatheringtracker/GatheringTrackerPlugin";
+@@ -150,6 +151,7 @@ export const CORE_PLUGINS: ReadonlyArray<PluginClass> = [
+     GatheringTrackerPlugin,
+     SlayerTrackerPlugin,
+     GuidePlugin,
++    MapWalkPlugin, // CUSTOM(mapwalk)
+     ShortestPathPlugin,
+     // After VoiceChatPlugin: while voice chat holds the chatbox Report button, its clicks are voice's.
+     BugReportPlugin,
