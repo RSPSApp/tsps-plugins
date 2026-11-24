@@ -49,6 +49,14 @@
             "category": "Community",
             "version": "1.0.0",
             "description": "Automates supported skilling, combat, and bank trips on your TSPS server. Fork-specific activities and desktop notifications require matching TSPS integrations."
+        },
+        {
+            "id": "content-builders",
+            "name": "NPC and gear Creator",
+            "author": "GhostScape",
+            "category": "@ Ghost Plugins @",
+            "version": "2.2.0",
+            "description": "Optional NPC and gear Creator with portable exports. Requires the TSPS tool host, sampled animations, custom combat and gear visual support."
         }
     ]
 }
