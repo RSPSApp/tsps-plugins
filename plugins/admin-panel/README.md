@@ -14,15 +14,14 @@ Open `::admin` with an authorised account. Actions retain their rank, command, t
 
 Run `npm ci` in the Hub repository with Node.js 22 and install the TSPS client dependencies from the source revision's lockfile. Run these commands from the Hub repository root.
 
+The rebuild script requires [Hub #6](https://github.com/RSPSApp/tsps-plugins/pull/6).
+
 ```sh
-hub="$(pwd)"
-(
-  cd /path/to/tsps || exit
-  banner=$(printf '/*\n%s\n\n*/' "$(cat LICENSE)")
-  client/node_modules/.bin/esbuild server/plugins/tools/AdminPanel.entry.js \
-    --bundle --platform=node --format=cjs --banner:js="$banner" \
-    --outfile="$hub/plugins/admin-panel/AdminPanel.plugin.js"
-)
+tsps="$PWD"
+hub=/path/to/tsps-plugins
+cd "$hub"
+npm ci
+node scripts/bundle-plugin.mjs "$tsps" admin-panel server/plugins/tools/AdminPanel.entry.js
 python3 scripts/package-plugin.py admin-panel
 ```
 
