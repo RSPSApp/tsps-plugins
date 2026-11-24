@@ -5105,6 +5105,11 @@ var require_Containers_PlayerTools = __commonJS({
       if (!Number.isInteger(slot) || slot < 0 || slot >= limit || name === "equipment" && !equipmentNames(core).has(slot)) fail("Choose a valid item slot.");
       return held.getItems()[slot];
     }
+    function raisesQuantity(core, player, body) {
+      const held = container(core, player, body.container, body.bankTab ?? 0);
+      const item = checkedSlot(core, held, body.container, body.slot);
+      return body.quantity > (item?.getAmount() ?? 0);
+    }
     function putSlot(core, held, name, slot, item) {
       if (name === "bank") while (held.getItems().length <= slot) held.getItems().push(new core.Item(-1, 0));
       held.setItem(slot, item);
@@ -5229,6 +5234,7 @@ var require_Containers_PlayerTools = __commonJS({
       return { message, undo: body.mode === "undo" ? null : { held, before, after: scopeFingerprint(scope(core, player, body.container)), container: body.container, bankTab: body.bankTab ?? 0 } };
     }
     module2.exports = {
+      raisesQuantity,
       entries,
       apply,
       fingerprint,
@@ -5316,7 +5322,7 @@ var require_PlayerTools = __commonJS({
         }
       }
     }
-    function requiredCommands(actor, target, body, teleportCommand) {
+    function requiredCommands(core, actor, target, body, teleportCommand) {
       const grants = actor === target ? "item" : "give";
       switch (body.action) {
         case "teleport":
@@ -5329,8 +5335,10 @@ var require_PlayerTools = __commonJS({
           return [body.preset === "reset" ? "reset" : "master"];
         case "quest":
           return ["quest"];
-        case "container":
-          return body.mode === "add" ? ["copybank", grants] : ["copybank"];
+        case "container": {
+          const creating = body.mode === "add" || body.mode === "increase" || body.mode === "set" && require_Containers_PlayerTools().raisesQuantity(core, target, body);
+          return creating ? ["copybank", grants] : ["copybank"];
+        }
         default:
           return [];
       }
@@ -5340,7 +5348,7 @@ var require_PlayerTools = __commonJS({
       const core = api.core;
       if (core.Server?.isShuttingDown?.()) throw new PlayerToolError(409, "Wait until the server has finished restarting.");
       if (!target || target.isRegistered?.() === false) throw new PlayerToolError(409, "The player is offline.");
-      if (actor) requireNativeAccess(core, actor, target, requiredCommands(actor, target, body, teleportCommand));
+      if (actor) requireNativeAccess(core, actor, target, requiredCommands(core, actor, target, body, teleportCommand));
       if (target.getProfile() !== (core.GameConstants.WORLD_PROFILE ?? "main")) throw new PlayerToolError(409, "The player is on a different world profile.");
       if (target.isDyingReturn() || target.getHitpoints() <= 0 || target.isTeleportingReturn()) {
         throw new PlayerToolError(409, "Wait until the player is alive and has finished teleporting.");
@@ -5445,6 +5453,7 @@ var require_Testing_AdminPanel = __commonJS({
   "server/plugins/tools/adminpanel/Testing.AdminPanel.js"(exports2, module2) {
     var { PlayerToolError, requireNativeAccess } = require_PlayerTools();
     var BOOKS = [["NORMAL", "Standard"], ["ANCIENT", "Ancient"], ["LUNAR", "Lunar"], ["ARCEUUS", "Arceuus"]];
+    var BOOK_COMMANDS = { NORMAL: "normal", ANCIENT: "ancients", LUNAR: "lunar", ARCEUUS: "arceuus" };
     var PRAYERS = ["PRESERVE", "RIGOUR", "AUGURY"];
     var fail = (message) => {
       throw new PlayerToolError(409, message);
@@ -5525,7 +5534,7 @@ var require_Testing_AdminPanel = __commonJS({
     }
     async function apply(api, actor, player, body) {
       const { core } = api;
-      const command = body.testing === "special" || body.testing === "restore" ? "spec" : body.testing?.startsWith("prayer:") ? "unlockprayers" : null;
+      const command = body.testing === "special" || body.testing === "restore" ? "spec" : body.testing?.startsWith("prayer:") ? "unlockprayers" : body.testing?.startsWith("book:") ? BOOK_COMMANDS[body.testing.slice(5)] : null;
       requireNativeAccess(core, actor, player, command ? [command] : []);
       if (core.Server.isShuttingDown()) fail("Wait until the server has finished restarting.");
       if (!player?.isRegistered() || core.World.getPlayerByName(player.getUsername()) !== player) fail("The player is offline.");
