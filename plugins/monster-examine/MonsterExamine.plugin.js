@@ -462,6 +462,7 @@ var require_Layout_MonsterExamine = __commonJS({
           dataComponent: C.DATA,
           extraDataComponents: DATA_COMPONENTS.slice(1),
           maxLength: 50,
+          matchSectionAndInfo: true,
           placeholder: "<col=b9ab96>Search items or drop groups...</col>",
           textTemplate: "%s",
           caret: "|",
