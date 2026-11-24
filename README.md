@@ -36,4 +36,4 @@ node scripts/bundle-plugin.mjs /path/to/tsps <plugin-id> <entry-relative-to-tsps
 python3 scripts/package-plugin.py <plugin-id>
 ```
 
-The bundler checks the entry size and rejects dependencies on private TSPS engine source. Client changes still require a compatible client build.
+The bundler retains the TSPS license notice, checks the entry size and rejects dependencies on private TSPS engine source. Client changes still require a compatible client build.

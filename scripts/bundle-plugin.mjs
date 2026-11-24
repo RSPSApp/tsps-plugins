@@ -31,6 +31,7 @@ const result = buildSync({
     legalComments: 'inline',
     logLevel: 'silent',
     metafile: true,
+    banner: { js: `/*\n${fs.readFileSync(path.join(sourceRoot, 'LICENSE'), 'utf8')}\n*/` },
 });
 if (Object.keys(result.metafile.inputs).some(file => file.startsWith('server/src/'))) {
     throw new Error('Plugins must use api.core; private TSPS engine code must not be bundled.');
