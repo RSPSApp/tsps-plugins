@@ -896,11 +896,12 @@ var require_Catalog_Bestiary = __commonJS({
     function catalog2(core, encounters = []) {
       const rows2 = [];
       const count = Math.min(MAX_DEFINITIONS, core.CacheDefinitions.getCounts().npcs);
-      for (const id of playableIds(core, encounters)) {
+      const declared = new Set(encounters);
+      for (const id of playableIds(core, declared)) {
         if (id >= count) continue;
         const definition = core.NpcDefinition.forId(id);
         const level = definition.getCombatLevel();
-        if (!definition.isAttackable() || !Number.isInteger(level) || level <= 0) continue;
+        if (!definition.isAttackable() || !Number.isInteger(level) || level < 0 || level === 0 && !declared.has(id)) continue;
         const name = plain(definition.getName(), 100);
         if (!name || name.toLowerCase() === "null") continue;
         rows2.push({ id, name, level, hp: definition.getHitpoints() });
@@ -1323,6 +1324,7 @@ var require_Layout_MonsterExamine = __commonJS({
           dataComponent: C.DATA,
           extraDataComponents: DATA_COMPONENTS.slice(1),
           maxLength: 50,
+          matchSectionAndInfo: true,
           placeholder: "<col=b9ab96>Search items or drop groups...</col>",
           textTemplate: "%s",
           caret: "|",
