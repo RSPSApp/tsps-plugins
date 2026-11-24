@@ -49,6 +49,14 @@
             "category": "Community",
             "version": "1.0.0",
             "description": "Automates supported skilling, combat, and bank trips on your TSPS server. Fork-specific activities and desktop notifications require matching TSPS integrations."
+        },
+        {
+            "id": "admin-panel",
+            "name": "Admin panel",
+            "author": "GhostScape",
+            "category": "@ Ghost Plugins @",
+            "version": "1.0.0",
+            "description": "In-game player editing, teleports, cheats, spawning and bot controls. Requires the matching TSPS native-interface and admin provider support."
         }
     ]
 }
