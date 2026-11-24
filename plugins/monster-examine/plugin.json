@@ -1,0 +1,8 @@
+{
+    "format": 1,
+    "id": "monster-examine",
+    "name": "MonsterExamine",
+    "version": "1.0.0",
+    "description": "Native monster stats, accuracy estimates and grouped drops. Requires the matching TSPS client and read-only examine APIs.",
+    "category": "@ Ghost Plugins @"
+}

@@ -1,0 +1,1169 @@
+/*
+BSD 2-Clause License
+
+Copyright (c) 2022-2026, dennisdev, xrsps
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __commonJS = (cb, mod) => function __require() {
+  try {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  } catch (e) {
+    throw mod = 0, e;
+  }
+};
+
+// server/plugins/interface/widgetGroup.js
+var require_widgetGroup = __commonJS({
+  "server/plugins/interface/widgetGroup.js"(exports2, module2) {
+    var FLAG_OP1 = 1 << 1;
+    var FLAG_OP2 = 1 << 2;
+    var FLAG_OP3 = 1 << 3;
+    var EVENT_FLAGS = Object.freeze({
+      OP1: FLAG_OP1,
+      OP2: FLAG_OP2,
+      OP3: FLAG_OP3,
+      OP4: 1 << 4,
+      OP5: 1 << 5,
+      OP6: 1 << 6,
+      OP7: 1 << 7,
+      OP8: 1 << 8,
+      OP9: 1 << 9,
+      OP10: 1 << 10,
+      TGTOBJ: 1 << 11,
+      TGTNPC: 1 << 12,
+      TGTLOC: 1 << 13,
+      TGTPLAYER: 1 << 14,
+      TGTINV: 1 << 15,
+      TGTCOM: 1 << 16
+    });
+    function eventFlags(names) {
+      return names.reduce((bits, name) => bits | (EVENT_FLAGS[name] ?? 0), 0);
+    }
+    var TYPE_LAYER = 0;
+    var TYPE_RECTANGLE = 3;
+    var TYPE_TEXT = 4;
+    var TYPE_GRAPHIC = 5;
+    var TYPE_MODEL = 6;
+    function createWidgetGroup(groupId) {
+      const widgets = [];
+      const uid = (component) => groupId << 16 | component;
+      const add = (component, parent, overrides = {}) => {
+        const id = uid(component);
+        widgets.push({
+          uid: id,
+          id,
+          childIndex: -1,
+          parentUid: parent,
+          groupId,
+          fileId: component,
+          isIf3: true,
+          type: TYPE_LAYER,
+          contentType: 0,
+          rawX: 0,
+          rawY: 0,
+          rawWidth: 0,
+          rawHeight: 0,
+          widthMode: 0,
+          heightMode: 0,
+          xPositionMode: 0,
+          yPositionMode: 0,
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          scrollX: 0,
+          scrollY: 0,
+          scrollWidth: 0,
+          scrollHeight: 0,
+          isHidden: false,
+          hidden: false,
+          cachedHidden: false,
+          rootIndex: -1,
+          cycle: -1,
+          modelFrame: 0,
+          modelFrameCycle: 0,
+          aspectWidth: 1,
+          aspectHeight: 1,
+          itemId: -1,
+          itemQuantity: 0,
+          ...overrides
+        });
+        return id;
+      };
+      return { groupId, widgets, uid, add };
+    }
+    function triggerInts(argsData) {
+      const ints = [];
+      let value = 0;
+      let shift = 0;
+      for (const byte of argsData ?? []) {
+        value |= (byte & 127) << shift;
+        shift += 7;
+        if ((byte & 128) !== 0) continue;
+        ints.push(value >>> 1 ^ -(value & 1));
+        value = 0;
+        shift = 0;
+      }
+      return ints;
+    }
+    function triggerVarints(argsData) {
+      const ints = [];
+      let value = 0;
+      let shift = 0;
+      for (const byte of argsData ?? []) {
+        value |= (byte & 127) << shift;
+        shift += 7;
+        if ((byte & 128) !== 0) continue;
+        ints.push(value >>> 0);
+        value = 0;
+        shift = 0;
+      }
+      return ints;
+    }
+    module2.exports = {
+      triggerInts,
+      triggerVarints,
+      FLAG_OP1,
+      FLAG_OP2,
+      FLAG_OP3,
+      EVENT_FLAGS,
+      eventFlags,
+      TYPE_LAYER,
+      TYPE_RECTANGLE,
+      TYPE_TEXT,
+      TYPE_GRAPHIC,
+      TYPE_MODEL,
+      createWidgetGroup
+    };
+  }
+});
+
+// server/plugins/interface/monsterexamine/Layout.MonsterExamine.js
+var require_Layout_MonsterExamine = __commonJS({
+  "server/plugins/interface/monsterexamine/Layout.MonsterExamine.js"(exports2, module2) {
+    var { TYPE_MODEL, TYPE_TEXT, TYPE_RECTANGLE, TYPE_GRAPHIC, FLAG_OP1, FLAG_OP2, FLAG_OP3, createWidgetGroup } = require_widgetGroup();
+    var GROUP_ID = 30021;
+    var MAIN_MODAL_UID = 161 << 16 | 16;
+    var C = {
+      ROOT: 0,
+      FRAME: 1,
+      PREVIEW: 2,
+      PREVIEW_BACKGROUND: 3,
+      MODEL: 4,
+      SUMMARY: 5,
+      PREVIEW_BORDER: 6,
+      BACK: 7,
+      BACK_TEXT: 8,
+      LEFT: 10,
+      FACTS: 11,
+      LEFT_BAR: 12,
+      HEIGHT: 13,
+      FIND: 14,
+      FIND_TEXT: 15,
+      CLEAR: 16,
+      CLEAR_TEXT: 17,
+      SEARCH: 20,
+      INPUT: 21,
+      STATUS: 22,
+      HEADER: 23,
+      ITEM_HEADER: 24,
+      QUANTITY_HEADER: 25,
+      RATE_HEADER: 26,
+      LIST: 30,
+      BAR: 31,
+      NOTE: 32,
+      DATA: 40,
+      GROUP_BACKGROUND: 50,
+      GROUP_BORDER: 90,
+      BACKGROUND: 140,
+      BORDER: 180,
+      GUIDE: 220,
+      ICON: 260,
+      TOGGLE: 300,
+      TOGGLE_GLYPH: 340,
+      LABEL: 400,
+      QUANTITY: 500,
+      RATE: 600,
+      SOURCE: 700,
+      DIVIDER: 740
+    };
+    var DATA_COMPONENTS = [C.DATA, 41, 42, 43];
+    var SLOTS = 40;
+    var ROW_HEIGHT = 64;
+    var COLOR = { gold: 16765567, text: 15261392, muted: 12168086, panel: 3156255, inset: 2169878 };
+    var FONT = { small: 494, normal: 495, bold: 496 };
+    function uid(component) {
+      return GROUP_ID << 16 | component;
+    }
+    function buildInterface() {
+      const { widgets, add } = createWidgetGroup(GROUP_ID);
+      const text = { type: TYPE_TEXT, fontId: FONT.small, textColor: COLOR.text, textShadowed: true, lineHeight: 14 };
+      const root = add(C.ROOT, -1, {
+        rawWidth: 18,
+        rawHeight: 18,
+        widthMode: 1,
+        heightMode: 1,
+        width: 494,
+        height: 316,
+        maxWidth: 920,
+        maxHeight: 900,
+        xPositionMode: 1,
+        yPositionMode: 1,
+        noClickThrough: true
+      });
+      add(C.FRAME, root, { widthMode: 1, heightMode: 1 });
+      for (const [component, label, caption, x, width, right] of [
+        [C.BACK, C.BACK_TEXT, "Back to Bestiary", 10, 128, false],
+        [C.FIND, C.FIND_TEXT, "Find", 116, 52, true],
+        [C.CLEAR, C.CLEAR_TEXT, "Clear pins", 32, 80, true]
+      ]) {
+        add(component, root, {
+          type: TYPE_RECTANGLE,
+          rawX: x,
+          rawY: 7,
+          rawWidth: width,
+          rawHeight: 20,
+          xPositionMode: right ? 2 : 0,
+          filled: true,
+          color: COLOR.inset,
+          mouseOverColor: 4799787,
+          flags: FLAG_OP1,
+          actions: [caption]
+        });
+        add(label, root, {
+          ...text,
+          rawX: x,
+          rawY: 7,
+          rawWidth: width,
+          rawHeight: 20,
+          xPositionMode: right ? 2 : 0,
+          text: caption,
+          textColor: COLOR.gold,
+          xTextAlignment: 1,
+          yTextAlignment: 1,
+          flags: FLAG_OP1,
+          actions: [caption]
+        });
+      }
+      const preview = add(C.PREVIEW, root, { rawX: 14, rawY: 38, rawWidth: 218, rawHeight: 154 });
+      add(C.PREVIEW_BACKGROUND, preview, {
+        type: TYPE_RECTANGLE,
+        widthMode: 1,
+        heightMode: 1,
+        filled: true,
+        color: COLOR.inset
+      });
+      add(C.MODEL, preview, {
+        type: TYPE_MODEL,
+        rawX: 2,
+        rawY: 2,
+        rawWidth: 214,
+        rawHeight: 150,
+        modelId: -1,
+        npcFullBody: true,
+        rotationX: 160,
+        rotationY: 256
+      });
+      add(C.PREVIEW_BORDER, preview, { type: TYPE_RECTANGLE, widthMode: 1, heightMode: 1, filled: false, color: 6837304 });
+      add(C.SUMMARY, root, {
+        ...text,
+        rawX: 14,
+        rawY: 195,
+        rawWidth: 218,
+        rawHeight: 20,
+        fontId: FONT.normal,
+        xTextAlignment: 1,
+        yTextAlignment: 1
+      });
+      const left = add(C.LEFT, root, {
+        rawX: 14,
+        rawY: 218,
+        rawWidth: 202,
+        rawHeight: 236,
+        heightMode: 1,
+        scrollHeight: 700
+      });
+      add(C.FACTS, left, { ...text, rawWidth: 198, rawHeight: 3e3 });
+      add(C.LEFT_BAR, root, { rawX: 218, rawY: 218, rawWidth: 14, rawHeight: 236, heightMode: 1 });
+      add(C.SEARCH, root, {
+        type: TYPE_RECTANGLE,
+        rawX: 242,
+        rawY: 38,
+        rawWidth: 256,
+        rawHeight: 28,
+        widthMode: 1,
+        filled: true,
+        color: COLOR.inset,
+        actions: ["Search"],
+        flags: FLAG_OP1
+      });
+      add(C.INPUT, root, {
+        ...text,
+        rawX: 250,
+        rawY: 38,
+        rawWidth: 272,
+        rawHeight: 28,
+        widthMode: 1,
+        yTextAlignment: 1,
+        actions: ["Search"],
+        flags: FLAG_OP1
+      });
+      add(C.STATUS, root, {
+        ...text,
+        rawX: 242,
+        rawY: 69,
+        rawWidth: 256,
+        rawHeight: 16,
+        widthMode: 1,
+        textColor: COLOR.gold
+      });
+      const list = add(C.LIST, root, {
+        rawX: 242,
+        rawY: 87,
+        rawWidth: 272,
+        rawHeight: 99,
+        widthMode: 1,
+        heightMode: 1
+      });
+      add(C.BAR, root, { rawX: 14, rawY: 87, rawWidth: 14, rawHeight: 99, xPositionMode: 2, heightMode: 1 });
+      for (let i = 0; i < SLOTS; i++) {
+        add(C.GROUP_BACKGROUND + i, list, { type: TYPE_RECTANGLE, filled: true, color: COLOR.inset, hidden: true, isHidden: true });
+        add(C.GROUP_BORDER + i, list, { type: TYPE_RECTANGLE, filled: false, color: 8415301, hidden: true, isHidden: true });
+        add(C.BACKGROUND + i, list, {
+          type: TYPE_RECTANGLE,
+          rawY: i * ROW_HEIGHT,
+          rawHeight: ROW_HEIGHT,
+          widthMode: 1,
+          filled: true,
+          color: i % 2 ? 3156255 : 2630171,
+          mouseOverColor: 4799787,
+          flags: FLAG_OP1 | FLAG_OP2 | FLAG_OP3,
+          actions: ["Details"]
+        });
+        add(C.BORDER + i, list, { type: TYPE_RECTANGLE, widthMode: 1, filled: false, color: 8415301, hidden: true, isHidden: true });
+        add(C.GUIDE + i, list, { type: TYPE_RECTANGLE, filled: true, color: 8415301, hidden: true, isHidden: true });
+        add(C.ICON + i, list, {
+          type: TYPE_GRAPHIC,
+          rawX: 3,
+          rawY: i * ROW_HEIGHT + 8,
+          rawWidth: 32,
+          rawHeight: 32,
+          itemId: -1,
+          itemQuantityMode: 0,
+          flags: FLAG_OP1 | FLAG_OP2 | FLAG_OP3,
+          actions: ["Details"]
+        });
+        add(C.TOGGLE + i, list, {
+          type: TYPE_RECTANGLE,
+          rawWidth: 22,
+          rawHeight: 22,
+          filled: false,
+          color: 12688224,
+          mouseOverColor: COLOR.gold,
+          flags: FLAG_OP1 | FLAG_OP2 | FLAG_OP3,
+          actions: ["Expand"],
+          hidden: true,
+          isHidden: true
+        });
+        add(C.TOGGLE_GLYPH + i, list, {
+          ...text,
+          rawWidth: 22,
+          rawHeight: 22,
+          fontId: FONT.bold,
+          textColor: COLOR.gold,
+          xTextAlignment: 1,
+          yTextAlignment: 1,
+          flags: FLAG_OP1 | FLAG_OP2 | FLAG_OP3,
+          actions: ["Expand"],
+          hidden: true,
+          isHidden: true
+        });
+        add(C.LABEL + i, list, {
+          ...text,
+          rawX: 40,
+          rawY: i * ROW_HEIGHT + 3,
+          rawWidth: 158,
+          rawHeight: 28,
+          widthMode: 1,
+          overflowScroll: true,
+          fontId: FONT.normal,
+          flags: FLAG_OP1 | FLAG_OP2 | FLAG_OP3,
+          actions: ["Details"]
+        });
+        add(C.QUANTITY + i, list, {
+          ...text,
+          rawX: 72,
+          rawY: i * ROW_HEIGHT + 3,
+          rawWidth: 44,
+          rawHeight: 28,
+          xPositionMode: 2,
+          xTextAlignment: 1,
+          overflowScroll: true,
+          flags: FLAG_OP1 | FLAG_OP2 | FLAG_OP3,
+          actions: ["Details"]
+        });
+        add(C.RATE + i, list, {
+          ...text,
+          rawX: 2,
+          rawY: i * ROW_HEIGHT + 3,
+          rawWidth: 68,
+          rawHeight: 28,
+          xPositionMode: 2,
+          xTextAlignment: 1,
+          overflowScroll: true,
+          flags: FLAG_OP1 | FLAG_OP2 | FLAG_OP3,
+          actions: ["Details"]
+        });
+        add(C.SOURCE + i, list, {
+          ...text,
+          rawX: 40,
+          rawY: i * ROW_HEIGHT + 33,
+          rawWidth: 44,
+          rawHeight: 16,
+          widthMode: 1,
+          overflowScroll: true,
+          textColor: COLOR.muted,
+          lineHeight: 12,
+          flags: FLAG_OP1 | FLAG_OP2 | FLAG_OP3,
+          actions: ["Details"]
+        });
+        add(C.DIVIDER + i, list, { type: TYPE_RECTANGLE, rawHeight: 1, widthMode: 1, filled: true, color: 5719599 });
+      }
+      for (const component of [C.HEIGHT, C.NOTE, ...DATA_COMPONENTS]) add(component, root, { type: TYPE_TEXT, hidden: true, isHidden: true });
+      return {
+        groupId: GROUP_ID,
+        widgets,
+        search: {
+          inputComponent: C.INPUT,
+          backgroundComponent: C.SEARCH,
+          dataComponent: C.DATA,
+          extraDataComponents: DATA_COMPONENTS.slice(1),
+          maxLength: 50,
+          placeholder: "<col=b9ab96>Search items or drop groups...</col>",
+          textTemplate: "%s",
+          caret: "|",
+          focusColor: 4471079,
+          blurColor: COLOR.inset
+        },
+        list: {
+          viewComponent: C.LIST,
+          scrollbarComponent: C.BAR,
+          slotCount: SLOTS,
+          columns: 1,
+          rowHeight: ROW_HEIGHT,
+          iconStart: C.ICON,
+          labelStart: C.LABEL,
+          backgroundStart: C.BACKGROUND,
+          cards: {
+            minWidth: 112,
+            maxColumns: 5,
+            gap: 8,
+            height: 132,
+            groups: true,
+            groupBackdrops: {
+              backgroundStart: C.GROUP_BACKGROUND,
+              borderStart: C.GROUP_BORDER,
+              slotCount: SLOTS,
+              padding: 4,
+              backgroundColors: [COLOR.inset, 2827291],
+              borderColors: [8415301, 10190676]
+            },
+            parts: [
+              { start: C.LABEL, x: 8, y: 6, width: 16, height: 18, stretch: true, fontId: FONT.bold, textColor: COLOR.gold },
+              { start: C.ICON, x: 0, y: 26, width: 48, height: 48, align: "center" },
+              { start: C.DIVIDER, x: 8, y: 78, width: 16, height: 1, stretch: true },
+              {
+                start: C.QUANTITY,
+                x: 8,
+                y: 82,
+                width: 16,
+                height: 14,
+                stretch: true,
+                singleLine: true,
+                textAlignment: 0
+              },
+              { start: C.RATE, x: 8, y: 98, width: 16, height: 14, stretch: true, textAlignment: 0 },
+              { start: C.SOURCE, x: 8, y: 114, width: 16, height: 14, stretch: true }
+            ],
+            groupParts: [
+              { start: C.LABEL, x: 8, y: 6, width: 38, height: 18, stretch: true, fontId: FONT.bold },
+              { start: C.TOGGLE, x: -6, y: 6, width: 18, height: 18, align: "right" },
+              { start: C.TOGGLE_GLYPH, x: -6, y: 6, width: 18, height: 18, align: "right" }
+            ]
+          },
+          iconBaseY: 8,
+          labelBaseY: 3,
+          itemLabel: "%name",
+          headerLabel: "<col=ffd27f>%name</col>",
+          collapsible: true,
+          groupHeight: ROW_HEIGHT,
+          groupColor: 3813669,
+          groupLabel: "<col=ffd27f>%name</col>",
+          rowChrome: {
+            borderStart: C.BORDER,
+            dividerStart: C.DIVIDER,
+            guideStart: C.GUIDE,
+            toggleStart: C.TOGGLE,
+            toggleGlyphStart: C.TOGGLE_GLYPH,
+            indent: 6,
+            maxIndent: 18
+          },
+          headerStyle: {
+            height: 50,
+            backgroundColor: COLOR.inset,
+            fontId: FONT.bold,
+            textColor: COLOR.gold,
+            labelY: 6,
+            labelHeight: 20
+          },
+          select: { local: true },
+          tooltipField: "info",
+          actions: { examine: true, info: { label: "Drop info", field: "rules" } },
+          textColumns: [
+            { start: C.QUANTITY, field: "quantity", baseY: 3 },
+            { start: C.RATE, field: "rate", baseY: 3 },
+            {
+              start: C.SOURCE,
+              field: "source",
+              baseY: 33,
+              indent: true,
+              header: { baseY: 27, x: 8, width: 16, height: 18 }
+            }
+          ]
+        },
+        status: { component: C.STATUS, matches: "%total drop entries / thumbnails", empty: "No matching known drops.", tooltipComponent: C.NOTE },
+        scroll: [{ viewComponent: C.LEFT, scrollbarComponent: C.LEFT_BAR, contentHeightComponent: C.HEIGHT, contentHeight: 700 }]
+      };
+    }
+    module2.exports = { GROUP_ID, MAIN_MODAL_UID, C, DATA_COMPONENTS, ROW_HEIGHT, SLOTS, uid, DEFINITION: buildInterface() };
+  }
+});
+
+// server/plugins/interface/monsterexamine/Drops.MonsterExamine.js
+var require_Drops_MonsterExamine = __commonJS({
+  "server/plugins/interface/monsterexamine/Drops.MonsterExamine.js"(exports2, module2) {
+    var MAX_ROWS = 600;
+    var MAX_VISITS = 4e3;
+    var GROUPS = { guaranteed: "Guaranteed", main: "Main table", shared: "Shared tables", tertiary: "Tertiary rolls", conditional: "Conditional rewards" };
+    var GROUP_HELP = {
+      guaranteed: "Given on every eligible kill",
+      main: "The regular reward roll",
+      shared: "Rewards from nested tables",
+      tertiary: "Extra rolls alongside the main loot",
+      conditional: "Conditions or reward progress"
+    };
+    function plain2(value, limit = 90) {
+      return String(value ?? "").replace(/<[^>]*>/g, "").replace(/[<>\x00-\x1f]/g, "").slice(0, limit);
+    }
+    function rateOf(entry) {
+      const weight = Number(entry.weight) > 0 ? Number(entry.weight) : 1;
+      return Number(entry.out_of) > 0 ? Math.min(1, weight / Number(entry.out_of)) : null;
+    }
+    function rateText(rate) {
+      if (!(rate > 0)) return "Unknown rate";
+      if (rate >= 1) return "1/1";
+      let x = rate, n0 = 0, n1 = 1, d0 = 1, d1 = 0;
+      for (let i = 0; i < 24; i++) {
+        const a = Math.floor(x), n = a * n1 + n0, d = a * d1 + d0;
+        if (n > 9999 || d > 1e9) break;
+        if (n > 0 && Math.abs(n / d - rate) <= rate * 1e-8) return `${n}/${d.toLocaleString("en-US")}`;
+        [n0, n1, d0, d1] = [n1, n, d1, d];
+        if (x === a) break;
+        x = 1 / (x - a);
+      }
+      const inverse = 1 / rate;
+      return `1/${inverse < 100 ? Number(inverse.toFixed(2)) : Math.round(inverse).toLocaleString("en-US")}`;
+    }
+    function percentText(probability) {
+      const percent = probability * 100;
+      if (percent < 1e-3) return "<lt>0.001%";
+      const digits = Math.max(1, Math.floor(Math.log10(Math.max(1, percent))) + 1);
+      return `${Number(percent.toFixed(Math.max(0, 4 - digits)))}%`;
+    }
+    function quantity(entry) {
+      const alternatives = entry.quantity_alternatives ?? [];
+      const values = [entry.quantity, ...alternatives.map((row) => row.quantity)].flat().filter(Number.isFinite);
+      if (values.length) {
+        const min = Math.min(...values), max = Math.max(...values);
+        return `${min === max ? min : `${min}-${max}`}${alternatives.length ? " varies" : ""}`;
+      }
+      return plain2(entry.quantity_raw || "Unknown", 24);
+    }
+    function ratePanel(probability, { always = false, eligible = false, missing = "Not supplied", conditional = false } = {}) {
+      const tint = always ? "80df91" : conditional || !(probability > 0) ? "edbd6e" : probability <= 1e-3 ? "d6a4ff" : probability <= 0.01 ? "8dc8ff" : "e8ded0";
+      if (eligible) return "<col=edbd6e>When eligible</col>";
+      return probability > 0 ? `<col=${tint}>[${rateText(probability)}] ${percentText(probability)}</col>` : `<col=${tint}>${missing}</col>`;
+    }
+    function panelInfo(name, lines) {
+      const text = `<col=ffd27f>${plain2(name, 90)}</col><br>${[...new Set(lines.filter(Boolean))].slice(0, 8).map((line) => plain2(line, 400)).join("<br>")}`;
+      return { info: text };
+    }
+    function family(name) {
+      if (/^clue (scroll|bottle|geode|nest)\b/i.test(name)) return "Clues";
+      for (const [pattern, label] of [
+        [/ runes?$/i, "Runes"],
+        [/ seeds?$| spores?$/i, "Seeds"],
+        [/ arrows?$/i, "Arrows"],
+        [/ bolts?$/i, "Bolts"],
+        [/ darts?$/i, "Darts"],
+        [/ logs?$/i, "Logs"]
+      ]) {
+        if (pattern.test(name)) return label;
+      }
+      return null;
+    }
+    function tableName(key) {
+      const words = plain2(String(key).replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]/g, " "), 60).toLowerCase();
+      return words.charAt(0).toUpperCase() + words.slice(1) + (/table$/i.test(words) ? "" : " table");
+    }
+    function quantityRange(entry) {
+      if (entry.quantity_alternatives?.length || !Array.isArray(entry.quantity)) return null;
+      const min = entry.quantity[0], max = entry.quantity.at(-1);
+      return Number.isSafeInteger(min) && Number.isSafeInteger(max) && min >= 0 && max >= min ? [min, max] : null;
+    }
+    function buildDrops2(source, itemName) {
+      const rows = [];
+      let visits = 0, truncated = false, incomplete = false;
+      function each(entries, callback) {
+        for (const entry of (entries ?? []).slice(0, MAX_VISITS)) {
+          if (visits >= MAX_VISITS || rows.length >= MAX_ROWS) {
+            truncated = true;
+            break;
+          }
+          callback(entry);
+        }
+        if (entries?.length > MAX_VISITS) truncated = true;
+      }
+      function visit(entry, probability, context = {}, depth = 0) {
+        if (++visits > MAX_VISITS || rows.length >= MAX_ROWS || depth > 5) {
+          truncated = true;
+          return;
+        }
+        if (!entry || entry.nothing) return;
+        probability = Number.isFinite(probability) && probability >= 0 && probability <= 1 ? probability : null;
+        const reasons = [...context.reasons ?? [], ...(entry.notes ?? []).filter((note) => !/^Quest requirement: WikiQuestDropRequirement\(/.test(note)).slice(0, 6).map((note) => plain2(note, 400))].slice(0, 8);
+        if (!reasons.length && entry.notes?.some((note) => /^Quest requirement: WikiQuestDropRequirement\(/.test(note))) {
+          reasons.push("Only available when the reward's quest requirement is met.");
+        }
+        if (entry.quantity_alternatives?.length) reasons.push("Amount varies with the kill conditions.");
+        if (entry.quantity_selection === "unknown") reasons.push("The amount distribution is not supplied; the server chooses the listed amounts uniformly.");
+        if (entry.quest_requirement && !entry.notes?.length) reasons.push(`Requires ${entry.quest_requirement.key}: ${entry.quest_requirement.mode}.`);
+        if (entry.location_requirement) reasons.push(`Location: ${entry.location_requirement.not ? "outside " : ""}${entry.location_requirement.place}.`);
+        if (entry.shared_table || entry.ref) {
+          const key = entry.shared_table ?? entry.ref;
+          const split = source.categories?.[key];
+          const branches = split?.categories ?? [{ entries: source.shared?.[key], probability: 1 }];
+          const multiple = entry.roll_count_weights?.some((row) => row.rolls !== 1);
+          const path = [...context.path ?? [], { key: visits, name: tableName(key) }];
+          if (multiple) reasons.push("A successful table roll can give several rewards; these are reference rates for one reward roll.");
+          for (const branch of branches) {
+            if (branch.probability === 0) continue;
+            if (!branch.entries?.length) {
+              incomplete = true;
+              continue;
+            }
+            const chance = Number.isFinite(branch.probability) ? branch.probability : null;
+            const section2 = tableName(key);
+            const branchReasons = split ? [...reasons, source.combatLevel ? `This table is selected using NPC combat level ${source.combatLevel}.` : "Uses the lowest-level rewards because no combat level is recorded."] : reasons;
+            each(branch.entries, (child) => visit(
+              { ...child, item_id: child.itemId, out_of: child.outOf },
+              probability === null || chance === null ? null : probability * chance * child.weight / branch.entries[0].outOf,
+              {
+                ...context,
+                group: context.group === "main" ? "shared" : context.group,
+                section: section2,
+                reasons: branchReasons,
+                path,
+                sourceGroup: context.sourceGroup ?? (context.group === "main" ? "shared" : context.group),
+                pool: multiple || entry.notes?.length || entry.quest_requirement || entry.progression ? null : context.pool
+              },
+              depth + 1
+            ));
+          }
+          return;
+        }
+        if (entry.locationTalisman) {
+          incomplete = true;
+          return;
+        }
+        if (!Number.isInteger(entry.item_id) || entry.item_id < 0) {
+          incomplete = true;
+          return;
+        }
+        if (entry.progression) reasons.push("Requires reward progress built up over earlier kills.");
+        const eligible = context.group === "tertiary" && probability >= 1;
+        if (eligible && !reasons.length) reasons.push("Only awarded when the matching quest or clue requirement is met; the source does not specify which step.");
+        const conditional = reasons.length > 0 && !context.section;
+        const always = entry.always && !context.path?.length && !conditional;
+        const category = context.path?.length ? context.sourceGroup ?? context.group ?? "shared" : always ? "guaranteed" : context.group === "main" && conditional ? "conditional" : context.group ?? "main";
+        const section = plain2(entry.section || context.section, 60);
+        const name = plain2(entry.name || itemName(entry.item_id), 72);
+        const range = quantityRange(entry);
+        const missing = context.progression ? "Progress-based" : "Not supplied";
+        const rules = [...reasons];
+        if (entry.separate_roll) rules.push("A separate roll in addition to the main drops.");
+        if (probability === null) rules.push(context.progression ? "The chance depends on earlier reward rolls and your stored progress." : "A numerical rate is not recorded for this reward.");
+        const explanation = rules.join(" ");
+        const information = [...rules];
+        if (context.path?.length) information.push(`Source: ${context.path.map((part) => part.name).join(" / ")}.`);
+        if (context.group === "shared") information.push("Base chance before ring effects, drop boosts or encounter rewards.");
+        rows.push({
+          id: rows.length + 1,
+          icon: entry.item_id,
+          name,
+          detail: `x${quantity(entry)}${entry.noted ? " noted" : ""} | ${always ? "Always" : `${reasons.length ? "Conditional; " : ""}base ${rateText(probability)}`}`,
+          terms: `${GROUPS[category]} ${section} ${reasons.join(" ")}`,
+          group: category,
+          panel: {
+            quantity: `<col=b9ab96>Qty:</col> ${quantity(entry)}${entry.noted ? "<br><col=b9ab96>noted</col>" : ""}`,
+            rate: ratePanel(probability, { always, eligible, missing, conditional: reasons.length > 0 }),
+            source: plain2(explanation, 800),
+            rules: rules.length ? panelInfo(name, rules).info : "",
+            ...panelInfo(name, [`Amount: ${quantity(entry)}${entry.noted ? " noted" : ""}.`, ...information])
+          },
+          _rate: probability,
+          _pool: reasons.length || entry.quest_requirement || entry.progression || eligible ? null : context.pool,
+          _family: family(name),
+          _noted: !!entry.noted,
+          _path: context.path ?? [],
+          _mean: range ? (range[0] + range[1]) / 2 : null,
+          _range: range
+        });
+        each(entry.bonus_drops, (bonus) => visit(
+          bonus,
+          probability,
+          {
+            group: "conditional",
+            path: context.path,
+            sourceGroup: context.sourceGroup,
+            reasons: [...reasons, `Awarded together with ${name}.`]
+          },
+          depth + 1
+        ));
+        const progression = entry.progression;
+        if (progression) visit(
+          { item_id: progression.intermediate_item_id, quantity: progression.intermediate_quantities },
+          null,
+          {
+            group: "conditional",
+            path: context.path,
+            sourceGroup: context.sourceGroup,
+            progression: true,
+            reasons: ["Requires reward progress built up over earlier kills."]
+          },
+          depth + 1
+        );
+      }
+      const table = source?.table;
+      if (!table) return { rows, note: "Drop source unavailable. Encounter loot may apply." };
+      each(table.entries, (entry) => {
+        const reasons = [];
+        if (entry.pre_roll) reasons.push("Rolled before the main drops; a success replaces a main roll.");
+        if (entry.roll_group) reasons.push("One reward is chosen from a shared reward roll.");
+        if (!entry.always && table.reward_chain) reasons.push("Only rolled if the earlier ordered rewards are missed.");
+        const probability = entry.always ? 1 : !entry.pre_roll && !entry.separate_roll && table.main_max_roll > 0 ? entry.weight / table.main_max_roll : rateOf(entry);
+        visit(
+          entry,
+          Number.isFinite(probability) ? probability : null,
+          { group: "main", reasons, pool: !entry.always && !entry.pre_roll && !entry.separate_roll && !table.reward_chain ? "main" : null }
+        );
+      });
+      each(table.tertiary, (entry) => visit(entry, rateOf(entry), { group: "tertiary" }));
+      each(table.tertiary_groups, (group) => each(group.entries, (entry) => visit(
+        entry,
+        rateOf(entry),
+        { group: "tertiary", reasons: ["One reward is chosen from this extra reward roll."] }
+      )));
+      each(table.reward_chain?.stages, (stage) => each(stage.entries, (entry) => visit(
+        entry,
+        null,
+        { group: "conditional", progression: true, reasons: ["Only available after the earlier ordered reward rolls are missed."] }
+      )));
+      rows.sort((a, b) => (b._rate ?? -1) - (a._rate ?? -1) || a.name.localeCompare(b.name));
+      return { rows, note: `${truncated ? "List capped. " : ""}${incomplete ? "Some shared sources are missing. " : ""}Base chances per roll${table.rolls > 1 ? `; ${table.rolls} main rolls per kill` : ""}, before boosts. Hover a reward for its conditions.` };
+    }
+    function groupRows2(rows) {
+      let nextId = MAX_ROWS + 1;
+      const result = [];
+      function wire(row, parentId) {
+        const { id, icon, name, panel } = row;
+        return { id, icon, name, panel, ...parentId ? { parentId } : {} };
+      }
+      function folder(name, items, kind, parentId) {
+        const id = nextId++;
+        const duplicate = kind === "amounts";
+        const combined = duplicate && items.every((row) => row._pool === "main" && Number.isFinite(row._rate) && row._rate > 0);
+        const total = combined ? items.reduce((sum, row) => sum + row._rate, 0) : null;
+        const probability = total > 0 && total <= 1 ? total : null;
+        const average = probability !== null && items.every((row) => Number.isFinite(row._mean)) ? items.reduce((sum, row) => sum + row._rate * row._mean, 0) / probability : null;
+        const meanText = average === null ? "" : average.toLocaleString("en-US", { maximumFractionDigits: 2 });
+        const meanCell = average === null ? "" : average.toLocaleString(
+          "en-US",
+          average >= 1e3 ? { notation: "compact", maximumFractionDigits: 1 } : { maximumFractionDigits: 2 }
+        );
+        const range = probability !== null && items.every((row) => row._range) ? [Math.min(...items.map((row) => row._range[0])), Math.max(...items.map((row) => row._range[1]))] : null;
+        const rangeText = range ? (range[0] === range[1] ? [range[0]] : range).map((value) => value.toLocaleString("en-US")).join("-") : "";
+        const explanation = duplicate ? probability !== null ? "Combined chance of any listed amount per main-table roll. Expand to see each amount." : "These amounts use different or conditional reward rolls. Expand to see their individual chances." : kind === "table" ? "Rewards stay inside their source table, including nested tables. Rates include access to this table." : "Different items retain their individual rates. Expand to browse them.";
+        const averageInfo = !duplicate ? "" : average !== null ? `Average amount per successful drop: ${meanText}. Weighted by each amount chance; uniform ranges use their midpoint.` : "No average is shown: the amount distribution or reward conditions do not support a combined average.";
+        const count = kind === "items" ? new Set(items.map((row) => row.icon)).size : items.length;
+        const rules = [...new Set(items.map((row) => row.panel.rules).filter(Boolean))];
+        result.push({
+          id,
+          name,
+          icon: items[0].icon,
+          examineId: duplicate ? items[0].icon : -1,
+          expandable: true,
+          collapsed: true,
+          ...parentId ? { parentId } : {},
+          panel: {
+            quantity: rangeText ? `${rangeText}${meanCell ? ` (${meanCell} avg)` : ""}${items[0]._noted ? " noted" : ""}` : "",
+            rate: probability !== null ? ratePanel(probability) : "",
+            source: `${count} ${kind === "table" ? count === 1 ? "reward" : "rewards" : kind}`,
+            rules: rules.slice(0, 4).join("<br>") + (rules.length > 4 ? `<br>${rules.length - 4} more reward rules. Expand this group and use each item's Drop info to read them.` : ""),
+            ...panelInfo(name, [rangeText ? `Amount range per successful drop: ${rangeText}${items[0]._noted ? " noted" : ""}.` : "", explanation, averageInfo])
+          }
+        });
+        return id;
+      }
+      function emitDuplicates(items, parentId) {
+        const buckets = /* @__PURE__ */ new Map();
+        for (const row of items) {
+          const key = `${row.icon}:${row._noted}`;
+          if (!buckets.has(key)) buckets.set(key, []);
+          buckets.get(key).push(row);
+        }
+        for (const duplicates of buckets.values()) {
+          const parent = duplicates.length > 1 ? folder(duplicates[0].name, duplicates, "amounts", parentId) : parentId;
+          result.push(...duplicates.map((item) => wire(item, parent)));
+        }
+      }
+      function emitFamilies(items, parentId) {
+        const handled = /* @__PURE__ */ new Set();
+        for (const row of items) {
+          if (handled.has(row.id)) continue;
+          const familyItems = row._family ? items.filter((item) => !handled.has(item.id) && item._family === row._family) : [];
+          const unique = new Set(familyItems.map((item) => item.icon));
+          const alreadyInFamilyTable = parentId && familyItems.length === items.length;
+          if (!alreadyInFamilyTable && (unique.size >= 5 || row._family === "Clues" && unique.size >= 2)) {
+            const parent = folder(row._family, familyItems, "items", parentId);
+            emitDuplicates(familyItems, parent);
+            familyItems.forEach((item) => handled.add(item.id));
+          } else {
+            const duplicates = items.filter((item) => !handled.has(item.id) && item.icon === row.icon && item._noted === row._noted);
+            emitDuplicates(duplicates, parentId);
+            duplicates.forEach((item) => handled.add(item.id));
+          }
+        }
+      }
+      function emitSources(items, parentId, depth = 0) {
+        emitFamilies(items.filter((row) => !row._path[depth]), parentId);
+        const sources = /* @__PURE__ */ new Map();
+        for (const row of items) {
+          const source = row._path[depth];
+          if (!source) continue;
+          if (!sources.has(source.key)) sources.set(source.key, { source, items: [] });
+          sources.get(source.key).items.push(row);
+        }
+        for (const { source, items: rewards } of sources.values()) {
+          const parent = folder(source.name, rewards, "table", parentId);
+          emitSources(rewards, parent, depth + 1);
+        }
+      }
+      for (const [key, name] of Object.entries(GROUPS)) {
+        const items = rows.filter((row) => row.group === key);
+        if (!items.length) continue;
+        result.push({
+          id: nextId++,
+          name: `${name} (${items.length})`,
+          header: true,
+          panel: { source: GROUP_HELP[key] }
+        });
+        emitSources(items);
+      }
+      return result;
+    }
+    function splitRows2(rows, components = 4) {
+      const parts = [[]];
+      let bytes = 2;
+      for (const row of rows) {
+        const size = Buffer.byteLength(JSON.stringify(row), "utf8") + 1;
+        if (bytes + size > 38e3) {
+          if (parts.length === components) break;
+          parts.push([]);
+          bytes = 2;
+        }
+        parts.at(-1).push(row);
+        bytes += size;
+      }
+      return parts;
+    }
+    module2.exports = { buildDrops: buildDrops2, groupRows: groupRows2, splitRows: splitRows2, plain: plain2, MAX_ROWS };
+  }
+});
+
+// server/plugins/interface/monsterexamine/Accuracy.MonsterExamine.js
+var require_Accuracy_MonsterExamine = __commonJS({
+  "server/plugins/interface/monsterexamine/Accuracy.MonsterExamine.js"(exports2, module2) {
+    function baseAccuracy(core, player, npc) {
+      const { BonusManager: B, CombatType, AccuracyFormulasDpsCalc: formula } = core;
+      const fight = player.getFightType();
+      const selected = fight.getBonusType();
+      const melee = [B.ATTACK_STAB, B.ATTACK_SLASH, B.ATTACK_CRUSH];
+      const bonuses = player.getBonusManager().getAttackBonus();
+      const meleeBonus = melee.includes(selected) ? selected : melee.reduce((best, index) => (bonuses[index] ?? 0) > (bonuses[best] ?? 0) ? index : best);
+      const meleeName = ["stab", "slash", "crush"][melee.indexOf(meleeBonus)];
+      const result = [];
+      for (const [name, type, bonus] of [
+        ["Melee", CombatType.MELEE, meleeBonus],
+        ["Ranged", CombatType.RANGED, B.ATTACK_RANGE],
+        ["Magic", CombatType.MAGIC, B.ATTACK_MAGIC]
+      ]) {
+        const sameType = type === CombatType.MELEE ? melee.includes(selected) : selected === bonus;
+        const projectedFight = {
+          getBonusType: () => bonus,
+          getStyle: () => sameType ? fight.getStyle() : core.FightStyle.DEFENSIVE
+        };
+        let view;
+        const overrides = {
+          getAsPlayer: () => view,
+          getFightType: () => projectedFight,
+          isSpecialActivated: () => false,
+          getCombatSpecial: () => null,
+          combatSpecial: null
+        };
+        view = new Proxy(player, { get(target, key) {
+          if (Object.hasOwn(overrides, key)) return overrides[key];
+          const value = Reflect.get(target, key, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        }, set() {
+          throw new Error("Accuracy previews are read-only");
+        } });
+        const rolls = formula.specialRolls(view, npc, type, void 0, void 0, void 0, true);
+        result.push({
+          name,
+          type,
+          meleeStyle: type === CombatType.MELEE ? meleeName : void 0,
+          chance: rolls && Number.isFinite(rolls.attack) && Number.isFinite(rolls.defence) ? formula.hitChance(Math.max(0, rolls.attack), Math.max(0, rolls.defence)) : null
+        });
+      }
+      return result;
+    }
+    module2.exports = { baseAccuracy };
+  }
+});
+
+// server/plugins/interface/monsterexamine/Facts.MonsterExamine.js
+var require_Facts_MonsterExamine = __commonJS({
+  "server/plugins/interface/monsterexamine/Facts.MonsterExamine.js"(exports2, module2) {
+    var { plain: plain2 } = require_Drops_MonsterExamine();
+    var { baseAccuracy } = require_Accuracy_MonsterExamine();
+    var COLOR = { heading: "ffd27f", value: "e8ded0", muted: "b9ab96", good: "80df91", low: "ff8f83", caution: "edbd6e" };
+    function color(value, tint = COLOR.value) {
+      return `<col=${tint}>${plain2(value, 240)}</col>`;
+    }
+    function heading(label) {
+      return ["", color(label, COLOR.heading)];
+    }
+    function bonus(value) {
+      return color(`${value >= 0 ? "+" : ""}${value}`, value > 0 ? COLOR.good : value < 0 ? COLOR.low : COLOR.muted);
+    }
+    function level(current, max) {
+      return color(`${current}/${max}`, current < max ? COLOR.low : current > max ? COLOR.good : COLOR.value);
+    }
+    function summary2(npc, definition) {
+      const healthColor = npc.getHitpoints() * 4 < npc.getMaxHitpoints() ? COLOR.low : COLOR.good;
+      return `${color(`Level ${definition.getCombatLevel()}`, COLOR.heading)}    HP ${color(`${npc.getHitpoints()}/${npc.getMaxHitpoints()}`, healthColor)}`;
+    }
+    function combatFacts2(core, player, npc, definition) {
+      const { Skill } = core;
+      const lines = [
+        color(definition.getExamine(), COLOR.muted),
+        ...heading("Combat levels"),
+        `Hitpoints: ${level(npc.getHitpoints(), npc.getMaxHitpoints())}`
+      ];
+      for (const [label, skill] of [
+        ["Attack", Skill.ATTACK],
+        ["Strength", Skill.STRENGTH],
+        ["Defence", Skill.DEFENCE],
+        ["Ranged", Skill.RANGED],
+        ["Magic", Skill.MAGIC]
+      ]) {
+        lines.push(`${label}: ${level(npc.getCurrentLevel(skill), npc.getMaxLevel(skill))}`);
+      }
+      lines.push(
+        ...heading("Attacks"),
+        `Speed: ${color(`${npc.getBaseAttackSpeed()} ticks / ${(npc.getBaseAttackSpeed() * 0.6).toFixed(1)}s`)}`,
+        `Default style: ${color(definition.getAttackStyle() || "Unknown")}`,
+        `Current base max hit: ${color(npc.getCurrentMaxHit(definition.getAttackType()), COLOR.caution)}`
+      );
+      for (const hit of definition.getMaxHits().slice(0, 10)) {
+        lines.push(`${plain2(hit.label || "Source max", 48)}: ${color(hit.value, COLOR.caution)}`);
+      }
+      const stats = definition.getStats();
+      lines.push(
+        ...heading("Attack bonuses"),
+        `Melee ${bonus(stats[5] ?? 0)}   Ranged ${bonus(stats[9] ?? 0)}`,
+        `Magic ${bonus(stats[7] ?? 0)}`,
+        ...heading("Defence bonuses")
+      );
+      for (const [label, index] of [["Stab", 0], ["Slash", 1], ["Crush", 2], ["Magic", 3], ["Ranged", 4]]) {
+        lines.push(`${label}: ${bonus(npc.getDefenceBonus(index))}`);
+      }
+      const light = npc.getDefenceBonus(4, "light"), heavy = npc.getDefenceBonus(4, "heavy");
+      if (light !== npc.getDefenceBonus(4) || heavy !== npc.getDefenceBonus(4)) {
+        lines.push(`Light ${bonus(light)}   Heavy ${bonus(heavy)}`);
+      }
+      lines.push(...heading("Your accuracy"));
+      for (const roll of baseAccuracy(core, player, npc)) {
+        lines.push(`${color(roll.name, COLOR.heading)} base hit chance: ${roll.chance === null ? "Unavailable" : color(`${(roll.chance * 100).toFixed(1)}%`, COLOR.good)}`);
+      }
+      lines.push(
+        ...heading("Requirements & traits"),
+        `Slayer level: ${color(definition.getSlayerLevel())}`,
+        `Poison immune: ${color(definition.isPoisonImmune() ? "Yes" : "No", definition.isPoisonImmune() ? COLOR.good : COLOR.muted)}`,
+        `Venom immune: ${color(definition.isVenomImmune() ? "Yes" : "No", definition.isVenomImmune() ? COLOR.good : COLOR.muted)}`,
+        `Freeze resistance: ${color(`${definition.getFreezeResistance()}%`)}`
+      );
+      const weakness = definition.getElementalWeakness();
+      if (weakness) lines.push(`Weakness: ${color(`${["", "Air", "Water", "Earth", "Fire"][weakness.type]} +${weakness.percent}%`, COLOR.good)}`);
+      if (definition.getAttributes().length) lines.push(color(definition.getAttributes().join(", "), COLOR.caution));
+      return lines;
+    }
+    module2.exports = { combatFacts: combatFacts2, summary: summary2 };
+  }
+});
+
+// server/plugins/interface/monsterexamine/Access.MonsterExamine.js
+var require_Access_MonsterExamine = __commonJS({
+  "server/plugins/interface/monsterexamine/Access.MonsterExamine.js"(exports2, module2) {
+    function canOpen2(core, player, allowedGroups) {
+      if (!allowedGroups.includes(player.getInterfaceId()) && (player.busy() || player.getPacketSender().hasInterruptibleInterface())) return false;
+      return !player.getDialogueManager().isActive() && !player.isLocked() && player.getHitpoints() > 0 && !player.isNeedsPlacement() && !player.getCombat().isAnimationStalled() && !player.getPacketSender().hasInputPrompt() && !player.getForceMovement() && player.getStatus() === core.PlayerStatus.NONE;
+    }
+    module2.exports = { canOpen: canOpen2 };
+  }
+});
+
+// server/plugins/interface/MonsterExamine.entry.js
+var Layout = require_Layout_MonsterExamine();
+var { buildDrops, groupRows, splitRows, plain } = require_Drops_MonsterExamine();
+var { combatFacts, summary } = require_Facts_MonsterExamine();
+var { canOpen } = require_Access_MonsterExamine();
+var lastRequest = /* @__PURE__ */ new WeakMap();
+var viewed = /* @__PURE__ */ new WeakMap();
+var REQUEST_INTERVAL_MS = 500;
+var MAINMODAL_BACKGROUND_SCRIPT = 917;
+var EXPANDED_MODAL_SIZE = -3;
+var CLOSE_ON_INTERFACE_CLOSE_ATTRIBUTE = "interface:close-on-interface-close";
+function examine(api, event) {
+  const { player, npc } = event;
+  if (event.handled || !npc) return;
+  const definition = npc.getCurrentDefinition(player);
+  if (!definition?.isAttackable()) return;
+  if (!canOpen(api.core, player, [Layout.GROUP_ID])) return;
+  const now = Date.now();
+  if (now - (lastRequest.get(player) ?? 0) < REQUEST_INTERVAL_MS) return;
+  lastRequest.set(player, now);
+  show(api, player, npc, definition);
+  event.handled = true;
+}
+function show(api, player, npc, definition, dropNpc = npc) {
+  const npcId = definition.getId();
+  const query = { player, npc: dropNpc, npcId, source: null };
+  api.emitCustomEvent("npc-drops:describe", query);
+  const display = buildDrops(query.source, (id) => api.core.ItemDefinition.forId(id).getName());
+  const rows = groupRows(display.rows);
+  const parts = splitRows(rows);
+  const lines = combatFacts(api.core, player, npc, definition);
+  const sender = player.getPacketSender();
+  player.setInterfaceId(Layout.GROUP_ID);
+  player.setAttribute(CLOSE_ON_INTERFACE_CLOSE_ATTRIBUTE, true);
+  sender.sendInterfaceScript(MAINMODAL_BACKGROUND_SCRIPT, [-1, EXPANDED_MODAL_SIZE]);
+  sender.sendSubInterface(Layout.MAIN_MODAL_UID, Layout.GROUP_ID, 0, {
+    postScripts: [
+      { scriptId: MAINMODAL_BACKGROUND_SCRIPT, args: [-1, EXPANDED_MODAL_SIZE] },
+      { scriptId: 227, args: [Layout.uid(Layout.C.FRAME), plain(definition.getName())] }
+    ]
+  });
+  sender.sendNpcHeadOnInterface(definition.getId(), Layout.uid(Layout.C.MODEL));
+  sender.sendInterfaceAnimation(Layout.uid(Layout.C.MODEL), api.core.CacheDefinitions.getNpc(definition.getId()).idleSeqId ?? -1);
+  sender.sendString(summary(npc, definition), Layout.uid(Layout.C.SUMMARY));
+  sender.sendString(lines.join("<br>"), Layout.uid(Layout.C.FACTS));
+  sender.sendString(String(12 + lines.reduce((height, line) => height + 14 * Math.max(1, Math.ceil(plain(line, 1e3).length / 31)), 0)), Layout.uid(Layout.C.HEIGHT));
+  const sentRows = parts.reduce((count, rows2) => count + rows2.length, 0);
+  sender.sendString(`${sentRows < rows.length ? "List capped. " : ""}${display.note}`, Layout.uid(Layout.C.NOTE));
+  player.getFrameUpdater().clear(Layout.uid(Layout.C.INPUT));
+  sender.sendString("", Layout.uid(Layout.C.INPUT));
+  Layout.DATA_COMPONENTS.forEach((component, index) => sender.sendString(JSON.stringify(parts[index] ?? []), Layout.uid(component)));
+  viewed.set(player, npcId);
+  api.emitCustomEvent("bestiary:view", { player, npcId });
+}
+function openDefinition(api, event) {
+  const { player, npcId, fromGroupId, location } = event;
+  if (event.handled || !Number.isInteger(npcId) || npcId < 0 || npcId >= api.core.CacheDefinitions.getCounts().npcs || !canOpen(api.core, player, [Layout.GROUP_ID, fromGroupId])) return;
+  const definition = api.core.NpcDefinition.forId(npcId);
+  if (!definition.isAttackable()) return;
+  const npc = new api.core.NPC(npcId, location ?? player.getLocation().clone());
+  npc.getCurrentDefinition = () => definition;
+  const dropNpc = location ? npc : { getCurrentDefinition: () => definition, getLocation: () => null };
+  show(api, player, npc, definition, dropNpc);
+  event.handled = true;
+}
+function navigation(api, event) {
+  const { player, buttonId } = event;
+  if (event.handled || player.getInterfaceId() !== Layout.GROUP_ID || !canOpen(api.core, player, [Layout.GROUP_ID])) return;
+  const c = buttonId & 65535;
+  const name = [Layout.C.BACK, Layout.C.BACK_TEXT].includes(c) ? "bestiary:open" : [Layout.C.FIND, Layout.C.FIND_TEXT].includes(c) ? "bestiary:find" : "bestiary:clear";
+  const request = { player, npcId: viewed.get(player), handled: false };
+  api.emitCustomEvent(name, request);
+  if (!request.handled) player.getPacketSender().sendMessage("Bestiary is disabled. Enable it in Ghost Plugins to browse or find creatures.");
+  event.handled = true;
+}
+function forget({ player }) {
+  lastRequest.delete(player);
+  viewed.delete(player);
+}
+module.exports = {
+  name: "MonsterExamine",
+  category: "@ Ghost Plugins @",
+  description: "Examine attackable NPCs in a native game window with live combat stats and searchable effective drop sources.",
+  register(api) {
+    api.registerCustomInterface(Layout.DEFINITION);
+    api.onCustomEvent("world:npc-examine", examine.bind(null, api));
+    api.onCustomEvent("monster-examine:open-definition", openDefinition.bind(null, api));
+    api.onInterfaceActionButton([
+      Layout.C.BACK,
+      Layout.C.BACK_TEXT,
+      Layout.C.FIND,
+      Layout.C.FIND_TEXT,
+      Layout.C.CLEAR,
+      Layout.C.CLEAR_TEXT
+    ].map(Layout.uid), navigation.bind(null, api));
+    api.onPlayerLogout(forget);
+    api.onPlayerDisconnect(forget);
+  },
+  _test: { examine, combatFacts, openDefinition, navigation, Layout, MAINMODAL_BACKGROUND_SCRIPT, EXPANDED_MODAL_SIZE }
+};
