@@ -327,13 +327,13 @@ var require_Bots_AdminPanel = __commonJS({
         add("unavailable", "Bot spawning unavailable", "", event.error ?? "Enable PlayerBots to spawn routines and activities.", "");
         return rows2;
       }
-      for (const [kind, name] of [["activity", "Bots and activities"], ["routine", "Saved routines"]]) {
+      for (const [kind, name] of [["activity", "Bots and activities"], ["routine", "Routines"]]) {
         const entries = event.launchers.filter((launcher) => launcher.kind === kind);
         if (!entries.length) continue;
         add(`group:${kind}`, name, "", "", "", { group: true });
         for (const launcher of entries) add(launcher.key, launcher.name, "", launcher.description, "Configure", { parent: `group:${kind}`, info: launcher.detail });
       }
-      if (!rows2.length) add("empty", "No bot launchers available", "", "Save a routine or enable a bot activity to make it available here.", "");
+      if (!rows2.length) add("empty", "No bot launchers available", "", "Enable a bot routine or activity to make it available here.", "");
       return rows2;
     }
     function act(api, actor, state, key, amount) {
@@ -372,7 +372,11 @@ var require_Bots_AdminPanel = __commonJS({
         const values = settings.setup[launcher.key] ??= {};
         const index = field.choices.findIndex((choice) => choice.value === (values[field.id] ?? field.defaultValue));
         values[field.id] = field.choices[(index + 1) % field.choices.length].value;
-      } else if (event.launchers.some((item) => item.key === key)) {
+      } else {
+        const launcher = event.launchers.find((item) => item.key === key);
+        if (!launcher) return;
+        if (launcher.allowLocation === false) settings.usePlayerLocation = false;
+        if (launcher.allowSkills === false) settings.copyOwnerSkills = false;
         settings.key = key;
         settings.view = "setup";
       }
@@ -515,6 +519,8 @@ var require_BotView_AdminPanel = __commonJS({
         send(C.TITLE, `Configure ${launcher.name}`);
         send(C.NOTE, launcher.description);
         hide(setupComponents.slice(0, -6), false);
+        hide([C.LOCATION, C.LOCATION_LABEL], launcher.allowLocation === false);
+        hide([C.LEVELS, C.LEVELS_LABEL], launcher.allowSkills === false);
         send(C.COUNT, config.count);
         send(C.LOCATION_LABEL, `Spawn location: ${config.usePlayerLocation ? "My current tile" : "Saved location"}`);
         const at = config.usePlayerLocation ? player.getLocation() : launcher.location;
@@ -528,7 +534,8 @@ var require_BotView_AdminPanel = __commonJS({
           state.botButtons.set(C.OPTION_LABEL + i, `field:${field.id}`);
         });
         send(C.HEIGHT, 260 + launcher.setupFields.length * 34);
-        send(C.FEEDBACK, (config.feedback || `${data.managed}/${data.capacity} managed bots. Limit ${data.limit} per spawn.`).slice(0, 120));
+        const managed = data.capacity === null ? data.managed : `${data.managed}/${data.capacity}`;
+        send(C.FEEDBACK, (config.feedback || `${managed} managed bots. Limit ${data.limit} per spawn.`).slice(0, 120));
         send(C.PRIMARY_LABEL, `Spawn ${config.count} bot${config.count === 1 ? "" : "s"}`);
         hide([C.PRIMARY, C.PRIMARY_LABEL], false);
         return;
@@ -5046,6 +5053,7 @@ var require_Containers_PlayerTools = __commonJS({
     };
     var signature = (item) => JSON.stringify([item?.getId(), item?.getAmount(), item?.getMeta?.() ?? null]);
     var fingerprint = (container2) => container2.getItems().map(signature).join("|");
+    var sameMeta = (a, b) => JSON.stringify(a.getMeta?.() ?? null) === JSON.stringify(b.getMeta?.() ?? null);
     var EQUIPMENT_NAMES = {
       HEAD_SLOT: "Head",
       CAPE_SLOT: "Cape",
@@ -5101,11 +5109,11 @@ var require_Containers_PlayerTools = __commonJS({
       if (name === "bank") while (held.getItems().length <= slot) held.getItems().push(new core.Item(-1, 0));
       held.setItem(slot, item);
     }
-    function firstOpenSlot(core, player, name, tab = 0) {
-      const held = container(core, player, name, tab), items = held.getItems();
-      const limit = name === "bank" ? core.Bank.MAX_SLOTS : held.capacity();
-      for (let slot = 0; slot < limit; slot++) if (!items[slot] || items[slot].getId() < 0) return slot;
-      return -1;
+    function addDestination(core, containers, item, bank) {
+      const id = item.getId();
+      const matching = containers.find((held) => held.getItems().some((entry) => entry.getAmount() > 0 && entry.getId() === id && sameMeta(entry, item)));
+      if (matching || !bank) return matching;
+      return containers.find((held) => held.getItems().some((entry) => entry.getAmount() === 0 && core.Bank.sharesPlaceholder(entry.getId(), id)));
     }
     function equipAllowed(core, player, slot, item) {
       if (!item || item.getId() < 0) return;
@@ -5121,6 +5129,7 @@ var require_Containers_PlayerTools = __commonJS({
       const affected = scope(core, player, body.container);
       const before = affected.map((held2) => held2.getCopiedItems());
       let message;
+      let changed = held;
       if (body.mode === "undo") {
         const undo = body.undo;
         if (!undo || undo.container !== body.container || body.container !== "bank" && undo.held !== held || scopeFingerprint(affected) !== undo.after) fail("Items changed since this edit. Undo is no longer available.");
@@ -5160,7 +5169,7 @@ var require_Containers_PlayerTools = __commonJS({
           equipAllowed(core, player, body.destinationSlot, item);
           equipAllowed(core, player, body.slot, other);
         }
-        const merge = body.container === "bank" && other?.getId() === item.getId() && JSON.stringify(other.getMeta?.()) === JSON.stringify(item.getMeta?.());
+        const merge = body.container === "bank" && other?.getId() === item.getId() && sameMeta(other, item);
         if (merge && item.getAmount() + other.getAmount() > 2147483647) fail("The destination stack is full.");
         putSlot(core, destination, body.container, body.destinationSlot, merge ? other.clone().setAmount(item.getAmount() + other.getAmount()) : item.clone());
         putSlot(core, held, body.container, body.slot, merge || !other ? new core.Item(-1, 0) : other.clone());
@@ -5176,13 +5185,10 @@ var require_Containers_PlayerTools = __commonJS({
       } else if (body.mode === "add") {
         if (!Number.isInteger(body.itemId) || !core.CacheDefinitions.hasItem(body.itemId) || core.CacheDefinitions.getItem(body.itemId).placeholderTemplate >= 0) fail("Choose a loaded, usable item.");
         if (!Number.isInteger(body.quantity) || body.quantity < 1 || body.quantity > 2147483647) fail("Enter a positive whole quantity up to 2147483647.");
-        const item = new core.Item(body.itemId, body.quantity), definition = item.getDefinition();
-        if (body.firstOpen) {
-          if (!["inventory", "bank"].includes(body.container)) fail("Choose inventory or bank.");
-          const slot = firstOpenSlot(core, player, body.container, body.bankTab ?? 0);
-          if (slot < 0) fail(`There is no available open slot in this ${body.container}.`);
-          body = { ...body, slot, signature: signature(held.getItems()[slot]) };
-        }
+        const item = new core.Item(body.itemId, body.quantity);
+        const bank = body.container === "bank";
+        if (bank) item.setId(item.getDefinition().unNote());
+        const definition = item.getDefinition();
         if (body.slot !== void 0) {
           const selected = checkedSlot(core, held, body.container, body.slot);
           if (signature(selected) !== body.signature) fail("That slot changed. Choose the slot again.");
@@ -5205,19 +5211,21 @@ var require_Containers_PlayerTools = __commonJS({
           if (total > 2147483647) fail("The equipment stack is full.");
           held.setItem(slot, new core.Item(body.itemId, total));
         } else {
-          const room = held.getAddableAmount(item);
-          if (room < 1) fail("There is no room for this item.");
-          given = Math.min(room, body.quantity);
+          const stackable = bank || definition.isStackable();
+          const stack = stackable ? addDestination(core, affected, item, bank) : null;
+          changed = stack ?? held;
+          given = changed.getAddableAmount(item);
+          if (given < 1) fail("There is no room for this item.");
           item.setAmount(given);
-          if (body.slot !== void 0 && (body.firstOpen || !(body.container === "bank" && held.contains(body.itemId)))) {
-            const first = body.container === "bank" || definition.isStackable() ? given : 1;
-            putSlot(core, held, body.container, body.slot, new core.Item(body.itemId, first));
-            if (given > first) held.add(new core.Item(body.itemId, given - first), false);
-          } else held.add(item, false);
+          if (body.slot !== void 0 && !stack) {
+            const first = stackable ? given : 1;
+            putSlot(core, held, body.container, body.slot, item.clone().setAmount(first));
+            if (given > first) held.add(item.setAmount(given - first), false);
+          } else changed.add(item, false);
         }
         message = `Added ${given} x ${definition.getName()} to ${player.getUsername()}'s ${body.container}.${given < body.quantity ? ` Only ${given} of ${body.quantity} fit.` : ""}`;
       } else fail("Choose a valid item action.");
-      refresh(core, player, held, body.container);
+      refresh(core, player, changed, body.container);
       return { message, undo: body.mode === "undo" ? null : { held, before, after: scopeFingerprint(scope(core, player, body.container)), container: body.container, bankTab: body.bankTab ?? 0 } };
     }
     module2.exports = {
@@ -5226,7 +5234,6 @@ var require_Containers_PlayerTools = __commonJS({
       fingerprint,
       signature,
       container,
-      firstOpenSlot,
       viewFingerprint: (core, player, name) => scopeFingerprint(scope(core, player, name))
     };
   }
@@ -5294,11 +5301,46 @@ var require_PlayerTools = __commonJS({
       }
       return catalogue.items.filter((item) => item.name.toLowerCase().includes(wanted) || String(item.id) === wanted).sort((a, b) => Number(b.name.toLowerCase() === wanted) - Number(a.name.toLowerCase() === wanted) || a.name.localeCompare(b.name) || a.id - b.id);
     }
-    async function applyPlayerTool(api, target, body) {
+    function requireNativeAccess(core, actor, target, commands = []) {
+      if (!core.PlayerRights.hasAdminRights(actor) || !core.PluginManager.playerHasCommandRights(actor, "admin")) {
+        throw new PlayerToolError(403, "Admin access is no longer available.");
+      }
+      if (target && target.getRights().getId() > actor.getRights().getId()) {
+        throw new PlayerToolError(403, "You cannot edit a higher-ranked player.");
+      }
+      if (!commands.length) return;
+      const available = core.PluginManager.getRegisteredCommands(actor);
+      for (const command of commands) {
+        if (!available.some((entry) => entry.command === command)) {
+          throw new PlayerToolError(403, `This action requires ::${command} permission.`);
+        }
+      }
+    }
+    function requiredCommands(actor, target, body, teleportCommand) {
+      const grants = actor === target ? "item" : "give";
+      switch (body.action) {
+        case "teleport":
+          return [teleportCommand];
+        case "give":
+          return [grants];
+        case "skill":
+          return ["setlevel"];
+        case "preset":
+          return [body.preset === "reset" ? "reset" : "master"];
+        case "quest":
+          return ["quest"];
+        case "container":
+          return body.mode === "add" ? ["copybank", grants] : ["copybank"];
+        default:
+          return [];
+      }
+    }
+    async function applyPlayerTool(api, target, body, { actor, teleportCommand = "tele" } = {}) {
       if (!["teleport", "give", "skill", "preset", "restore", "quest", "rank", "container"].includes(body.action)) return null;
       const core = api.core;
       if (core.Server?.isShuttingDown?.()) throw new PlayerToolError(409, "Wait until the server has finished restarting.");
       if (!target || target.isRegistered?.() === false) throw new PlayerToolError(409, "The player is offline.");
+      if (actor) requireNativeAccess(core, actor, target, requiredCommands(actor, target, body, teleportCommand));
       if (target.getProfile() !== (core.GameConstants.WORLD_PROFILE ?? "main")) throw new PlayerToolError(409, "The player is on a different world profile.");
       if (target.isDyingReturn() || target.getHitpoints() <= 0 || target.isTeleportingReturn()) {
         throw new PlayerToolError(409, "Wait until the player is alive and has finished teleporting.");
@@ -5362,7 +5404,6 @@ var require_PlayerTools = __commonJS({
         target.getUpdateFlag().flag(core.Flag.APPEARANCE);
         message = `Applied ${body.preset} skills to ${target.getUsername()}.`;
       } else if (body.action === "rank") {
-        const actor = body.actor;
         const rights = core.PlayerRights;
         const callerRank = actor?.getRights?.().getId();
         const rank = rights?.[body.rank];
@@ -5395,14 +5436,14 @@ var require_PlayerTools = __commonJS({
       target.sendMessage(`[Admin] ${message}`);
       return { ok: true, message, ...extra ? { undo: extra.undo } : {} };
     }
-    module2.exports = { PlayerToolError, describePlayer, searchItems, applyPlayerTool };
+    module2.exports = { PlayerToolError, describePlayer, searchItems, applyPlayerTool, requireNativeAccess };
   }
 });
 
 // server/plugins/tools/adminpanel/Testing.AdminPanel.js
 var require_Testing_AdminPanel = __commonJS({
   "server/plugins/tools/adminpanel/Testing.AdminPanel.js"(exports2, module2) {
-    var { PlayerToolError } = require_PlayerTools();
+    var { PlayerToolError, requireNativeAccess } = require_PlayerTools();
     var BOOKS = [["NORMAL", "Standard"], ["ANCIENT", "Ancient"], ["LUNAR", "Lunar"], ["ARCEUUS", "Arceuus"]];
     var PRAYERS = ["PRESERVE", "RIGOUR", "AUGURY"];
     var fail = (message) => {
@@ -5484,7 +5525,8 @@ var require_Testing_AdminPanel = __commonJS({
     }
     async function apply(api, actor, player, body) {
       const { core } = api;
-      if (!core.PlayerRights.hasAdminRights(actor) || !core.PluginManager.playerHasCommandRights(actor, "admin")) throw new PlayerToolError(403, "Admin access is no longer available.");
+      const command = body.testing === "special" || body.testing === "restore" ? "spec" : body.testing?.startsWith("prayer:") ? "unlockprayers" : null;
+      requireNativeAccess(core, actor, player, command ? [command] : []);
       if (core.Server.isShuttingDown()) fail("Wait until the server has finished restarting.");
       if (!player?.isRegistered() || core.World.getPlayerByName(player.getUsername()) !== player) fail("The player is offline.");
       if (player.getProfile() !== (core.GameConstants.WORLD_PROFILE ?? "main")) fail("The player is on a different world profile.");
@@ -5679,7 +5721,7 @@ var require_Controller_AdminPanel = __commonJS({
     var registered = (player) => player && player.isRegistered() && player.getProfile() === (core.GameConstants.WORLD_PROFILE ?? "main") && core.World.getPlayerByName(player.getUsername()) === player;
     var online = (player) => registered(player) && !player.isPlayerBot?.();
     var actorOnline = (player) => registered(player) && (!player.isPlayerBot?.() || player.getSession()?.hasNetworkClient?.());
-    var eligible = (player) => core.PlayerRights.hasAdminRights(player) && (core.PluginManager?.playerHasCommandRights(player, "admin") ?? true);
+    var eligible = (player) => core.PlayerRights.hasAdminRights(player) && core.PluginManager.playerHasCommandRights(player, "admin");
     function session(player) {
       const state = sessions.get(player);
       if (!state || player.getInterfaceId() !== GROUP_ID) return null;
@@ -6369,14 +6411,14 @@ Spawn X places one item on each separate reachable tile.`,
         else tell(player, "Change cancelled.");
       });
     }
-    async function apply(player, state, body, targetOverride) {
+    async function apply(player, state, body, { targetOverride, teleportCommand } = {}) {
       if (ready(player) !== state) return;
       const target = targetOverride ?? targetOf(player, state);
       if (!target) return;
       state.busy = true;
       const editVersion = ++state.version;
       try {
-        const result = body.action === "testing" ? await Testing.apply(api, player, target, body) : await applyPlayerTool(api, target, { ...body, actor: player });
+        const result = body.action === "testing" ? await Testing.apply(api, player, target, body) : await applyPlayerTool(api, target, body, { actor: player, teleportCommand });
         if (body.action === "container" && body.mode === "add" && state.tab === TAB.ITEMS && state.target === target && state.version === editVersion) {
           state.tab = TAB.EDITOR;
           state.selected = null;
@@ -6478,7 +6520,12 @@ Spawn X places one item on each separate reachable tile.`,
             return true;
           }
           const location = destination.getLocation();
-          void apply(player, state, { action: "teleport", x: location.getX(), y: location.getY(), z: location.getZ() }, index === 1 ? player : entry.target);
+          void apply(
+            player,
+            state,
+            { action: "teleport", x: location.getX(), y: location.getY(), z: location.getZ() },
+            { targetOverride: index === 1 ? player : entry.target, teleportCommand: index === 1 ? "teleto" : "teletome" }
+          );
         }
       } else if (entry.botKey && index === 0) {
         changeBot(player, state, entry.botKey);
@@ -6740,13 +6787,9 @@ Spawn X places one item on each separate reachable tile.`,
       }
       if (!state || state.tab !== TAB.EDITOR || ![SECTION.INVENTORY, SECTION.BANK].includes(state.section) || !targetOf(player, state)) return true;
       const name = CONTAINERS[state.section - SECTION.INVENTORY];
-      if (Containers.firstOpenSlot(core, state.target, name, state.bankTab ?? 0) < 0) {
-        tell(player, `There is no available open slot in this ${name}.`);
-        return true;
-      }
       cancelPrompt(player, state);
       state.itemDestination = name;
-      state.pickerSlot = { firstOpen: true };
+      state.pickerSlot = null;
       state.tab = TAB.ITEMS;
       state.selected = null;
       beginSearch(player, state);
