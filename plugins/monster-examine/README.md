@@ -13,14 +13,14 @@ Enable Monster Examine in the client plugin list and examine a visible attackabl
 
 From the matching TSPS checkout root, with the client dependencies installed, build the bundled entry and package it:
 
+The rebuild script requires [Hub #6](https://github.com/RSPSApp/tsps-plugins/pull/6).
+
 ```sh
+tsps="$PWD"
 hub=/path/to/tsps-plugins
-license=$(printf '/*\n%s\n\n*/' "$(cat LICENSE)")
-./client/node_modules/.bin/esbuild server/plugins/interface/MonsterExamine.entry.js \
-  --bundle --platform=node --format=cjs --target=node22 \
-  --banner:js="$license" --outfile="$hub/plugins/monster-examine/MonsterExamine.plugin.js"
 cd "$hub"
 npm ci
+node scripts/bundle-plugin.mjs "$tsps" monster-examine server/plugins/interface/MonsterExamine.entry.js
 python3 scripts/package-plugin.py monster-examine
 ```
 
