@@ -1,18 +1,27 @@
 # Monster Examine
 
-Author: GhostScape. Source: the matching GhostScape feature changes for RSPSApp/tsps.
+Requires a TSPS build with [native interface controls (TSPS #6742)](https://github.com/RSPSApp/tsps/pull/6742)
+and [Monster Examine client and server support (TSPS #6743)](https://github.com/RSPSApp/tsps/pull/6743).
 
-Native monster stats, accuracy estimates and grouped drops. Requires the matching TSPS client and read-only examine APIs.
+Author: GhostScape.
 
-Install the release ZIP in the server Plugins panel and restart the server. This package does not patch or rebuild the client. Use a TSPS build with the integrations listed above. The source entry ends in `.entry.js` so it is not auto-loaded alongside this package.
+Shows native monster stats, accuracy estimates and grouped drops.
+
+Install the release ZIP in the server Plugins panel and restart the server. The source entry ends in `.entry.js` so it is not auto-loaded alongside this package.
 
 Enable Monster Examine in the client plugin list and examine a visible attackable NPC. Native examine chat remains available when the server plugin is disabled. Drop descriptions are read-only and do not roll or grant rewards. Bestiary is an optional separate package.
 
-Rebuild after installing the matching TSPS checkout dependencies:
+From the matching TSPS checkout root, with the client dependencies installed, build the bundled entry and package it:
 
 ```sh
-node scripts/bundle-plugin.mjs /path/to/tsps monster-examine server/plugins/interface/MonsterExamine.entry.js
+hub=/path/to/tsps-plugins
+license=$(printf '/*\n%s\n\n*/' "$(cat LICENSE)")
+./client/node_modules/.bin/esbuild server/plugins/interface/MonsterExamine.entry.js \
+  --bundle --platform=node --format=cjs --target=node22 \
+  --banner:js="$license" --outfile="$hub/plugins/monster-examine/MonsterExamine.plugin.js"
+cd "$hub"
+npm ci
 python3 scripts/package-plugin.py monster-examine
 ```
 
-The bundled entry includes its local helpers and JSON data because Hub ZIPs contain one JavaScript entry and a manifest. Remove or disable the installed package through the normal Plugins workflow.
+The bundle includes the local helpers and the TSPS license notice. The Hub ZIP contains the bundled entry and manifest. Remove or disable the installed package through the normal Plugins workflow.
