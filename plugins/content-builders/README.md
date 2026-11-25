@@ -9,3 +9,9 @@ Install the release ZIP in the server Plugins panel and restart the server. This
 Start the receiving world with `CACHE_EDITOR_ENABLED=1`, open its client with `?cache=1`, and choose NPC Creator or Gear Creator. Editable projects stay under the installed plugin data directory. Finished exported plugins run without the Creator service. Existing cache textures and native gear rigs are required; independent part animation is creature-only.
 
 Rebuild from a matching TSPS checkout with `node tools/content-builders/package.mjs`; extract `ContentBuilders.plugin.js` from the generated ZIP into this directory. The embedded authoring assets are generated from that source.
+
+## Screenshots
+
+![NPC Creator with JalTok-Jad parts](npc-creator.webp)
+
+![Gear Creator with an equipped Oathplate set in Lumbridge](gear-creator.webp)
