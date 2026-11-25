@@ -56,7 +56,8 @@
             "author": "GhostScape",
             "category": "@ Ghost Plugins @",
             "version": "1.0.0",
-            "description": "In-game player editing, teleports, cheats, spawning and bot controls. Requires the matching TSPS native-interface and admin provider support."
+            "description": "In-game player editing, teleports, cheats, spawning and bot controls. Requires the matching TSPS native-interface and admin provider support.",
+            "screenshot": "admin-panel.webp"
         }
     ]
 }

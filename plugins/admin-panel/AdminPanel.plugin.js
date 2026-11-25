@@ -637,6 +637,8 @@ var require_Layout_AdminPanel = __commonJS({
       SPAWN_LABEL_START: 532,
       MAP_TELEPORT: 534,
       MAP_TELEPORT_LABEL: 535,
+      QUEST_ACTION_START: 536,
+      QUEST_ACTION_LABEL_START: 538,
       LIST_BACKGROUND: 900,
       ROW_BACKGROUND_START: 1e3,
       ROW_LABEL_START: 1100,
@@ -654,6 +656,7 @@ var require_Layout_AdminPanel = __commonJS({
     var DATA_COMPONENTS = [COMPONENT.DATA_START, COMPONENT.EXTRA_DATA_START].flatMap((start) => Array.from({ length: 8 }, (_, i) => start + i));
     var BUTTONS = Array.from({ length: 4 }, (_, i) => ({ button: COMPONENT.BUTTON_START + i, label: COMPONENT.BUTTON_LABEL_START + i }));
     var PRESETS = [["max", "Max all"], ["combat", "Max combat"], ["reset", "Reset all"], ["restore", "Restore"]];
+    var QUEST_ACTIONS = [["complete-all", "Unlock all quests"], ["reset-all", "Reset all quests"]];
     var SKILL_ORDER = [0, 3, 14, 2, 16, 13, 1, 15, 10, 4, 17, 7, 5, 12, 11, 6, 9, 8, 20, 18, 19, 22, 21, 23];
     var TAB_VISIBILITY = [];
     var uid = (component) => GROUP_ID << 16 | component;
@@ -734,6 +737,17 @@ var require_Layout_AdminPanel = __commonJS({
       add(C.SEARCH_BOX, root, box(18, 116, 458, 26, { ...clickable, color: 2827291, widthMode: 1, rawWidth: 36 }));
       add(C.SEARCH_INPUT, root, text(26, 116, 446, 26, { ...clickable, mouseOverColor: 15261392, yTextAlignment: 1, widthMode: 1, rawWidth: 52 }));
       add(C.STATUS, root, text(18, 146, 458, 16, { textColor: 12102548, widthMode: 1, rawWidth: 36 }));
+      QUEST_ACTIONS.forEach(([, label], i) => button(
+        C.QUEST_ACTION_START + i,
+        C.QUEST_ACTION_LABEL_START + i,
+        root,
+        18 + (QUEST_ACTIONS.length - 1 - i) * 116,
+        145,
+        112,
+        18,
+        label,
+        { ...hidden, xPositionMode: 2, actions: [label] }
+      ));
       [...DATA_COMPONENTS, C.LAYOUT, C.SEARCH_REQUEST, C.SEARCH_RESPONSE, C.SEARCH_SESSION].forEach((component) => add(component, root, { type: TYPE_TEXT, ...hidden }));
       const list = add(C.LIST_VIEW, root, {
         rawX: 18,
@@ -1072,7 +1086,7 @@ var require_Layout_AdminPanel = __commonJS({
         status: { component: C.STATUS, matches: "%total listed", loading: "Searching...", error: "Search unavailable. Try again.", empty: "No matches. Try another name." }
       };
     }
-    module2.exports = { GROUP_ID, MAIN_MODAL_UID, COMPONENT, TAB_LABELS, SECTION_LABELS, SPAWN_LABELS, DATA_COMPONENTS, BUTTONS, ROW_SLOTS, PRESETS, SKILL_ORDER, TAB_VISIBILITY, uid, buildInterface };
+    module2.exports = { GROUP_ID, MAIN_MODAL_UID, COMPONENT, TAB_LABELS, SECTION_LABELS, SPAWN_LABELS, DATA_COMPONENTS, BUTTONS, ROW_SLOTS, PRESETS, QUEST_ACTIONS, SKILL_ORDER, TAB_VISIBILITY, uid, buildInterface };
   }
 });
 
@@ -5335,6 +5349,7 @@ var require_PlayerTools = __commonJS({
         case "preset":
           return [body.preset === "reset" ? "reset" : "master"];
         case "quest":
+        case "quest-bulk":
           return ["quest"];
         case "container": {
           const creating = body.mode === "add" || body.mode === "increase" || body.mode === "set" && require_Containers_PlayerTools().raisesQuantity(core, target, body);
@@ -5345,7 +5360,7 @@ var require_PlayerTools = __commonJS({
       }
     }
     async function applyPlayerTool(api, target, body, { actor, teleportCommand = "tele" } = {}) {
-      if (!["teleport", "give", "skill", "preset", "restore", "quest", "rank", "container"].includes(body.action)) return null;
+      if (!["teleport", "give", "skill", "preset", "restore", "quest", "quest-bulk", "rank", "container"].includes(body.action)) return null;
       const core = api.core;
       if (core.Server?.isShuttingDown?.()) throw new PlayerToolError(409, "Wait until the server has finished restarting.");
       if (!target || target.isRegistered?.() === false) throw new PlayerToolError(409, "The player is offline.");
@@ -5428,7 +5443,11 @@ var require_PlayerTools = __commonJS({
         target.setRunEnergy(100);
         message = `Restored ${target.getUsername()}'s current levels and run energy.`;
       } else {
-        if (typeof body.quest !== "string" || !["complete", "reset"].includes(body.mode)) throw new PlayerToolError(400, "Choose a quest and Complete or Reset.");
+        if (body.action === "quest-bulk") {
+          if (!["complete-all", "reset-all"].includes(body.mode)) throw new PlayerToolError(400, "Choose Unlock all quests or Reset all quests.");
+        } else if (typeof body.quest !== "string" || !["complete", "reset"].includes(body.mode)) {
+          throw new PlayerToolError(400, "Choose a quest and Complete or Reset.");
+        }
         const event = { player: target, key: body.quest, action: body.mode };
         api.emitCustomEvent("quests:admin", event);
         if (!event.handled) throw new PlayerToolError(409, "Quest tools are unavailable. Enable QuestCommand on the next server start.");
@@ -5706,7 +5725,7 @@ var require_Controller_AdminPanel = __commonJS({
     var Containers = require_Containers_PlayerTools();
     var { randomUUID } = require("node:crypto");
     var { describePlayer, searchItems, applyPlayerTool } = require_PlayerTools();
-    var { GROUP_ID, MAIN_MODAL_UID, COMPONENT: C, TAB_LABELS, DATA_COMPONENTS, BUTTONS, ROW_SLOTS, PRESETS, SKILL_ORDER, uid } = Layout;
+    var { GROUP_ID, MAIN_MODAL_UID, COMPONENT: C, TAB_LABELS, DATA_COMPONENTS, BUTTONS, ROW_SLOTS, PRESETS, QUEST_ACTIONS, SKILL_ORDER, uid } = Layout;
     var TAB = { PLAYERS: 0, TELEPORTS: 1, ITEMS: 2, EDITOR: 3, STATS: 3, QUESTS: 3, STAFF: 3, CHEATS: 4, TESTING: 4, GODMODE: 4, SPAWN: 5, NPCS: 5, BOTS: 6 };
     var SECTION = { SKILLS: 0, QUESTS: 1, STAFF: 2, INVENTORY: 3, EQUIPMENT: 4, BANK: 5, CHARACTER: 6 };
     var CONTAINERS = ["inventory", "equipment", "bank"];
@@ -5723,6 +5742,7 @@ var require_Controller_AdminPanel = __commonJS({
     var UTILITY_BUTTONS = [uid(C.UTILITY), uid(C.UTILITY_LABEL)];
     var SKILL_BUTTONS = SKILL_ORDER.map((index) => uid(C.SKILL_BUTTON_START + index));
     var PRESET_BUTTONS = PRESETS.flatMap((_, index) => [uid(C.PRESET_START + index), uid(C.PRESET_LABEL_START + index)]);
+    var QUEST_BUTTONS = QUEST_ACTIONS.flatMap((_, i) => [C.QUEST_ACTION_START + i, C.QUEST_ACTION_LABEL_START + i]);
     var sessions = /* @__PURE__ */ new WeakMap();
     var api;
     var core;
@@ -5776,6 +5796,7 @@ var require_Controller_AdminPanel = __commonJS({
       hide([V.EQUIPMENT], !container || state.section !== SECTION.EQUIPMENT);
       hide([V.BANK_VIEW, V.BANK_SCROLLBAR, V.BANK_TABS, V.BANK_INFO], !bank);
       hide([C.SKILL_VIEW, C.SKILL_SCROLLBAR], !skills);
+      hide(QUEST_BUTTONS, state.tab !== TAB.EDITOR || state.section !== SECTION.QUESTS);
       hide([C.PANEL, C.PANEL_BORDER, C.DETAIL_VIEW, C.DETAIL_SCROLLBAR], teleport || skills || bank || botForm);
       hide([C.UTILITY, C.UTILITY_LABEL, C.MAP_TELEPORT, C.MAP_TELEPORT_LABEL], !teleport);
       hide(Layout.SECTION_LABELS.flatMap((_, i) => [C.SECTION_START + i, C.SECTION_LABEL_START + i]), !editor);
@@ -6481,6 +6502,16 @@ Spawn X places one item on each separate reachable tile.`,
       else confirm(player, state, `${name} skills for ${state.target.getUsername()}?`, { action: "preset", preset });
       return true;
     }
+    function clickQuestAction({ player, buttonId, opId = 1 }) {
+      const state = ready(player);
+      if (!state || state.tab !== TAB.EDITOR || state.section !== SECTION.QUESTS || opId !== 1 || !targetOf(player, state)) return true;
+      const index = QUEST_ACTIONS.findIndex((_, i) => buttonId === uid(C.QUEST_ACTION_START + i) || buttonId === uid(C.QUEST_ACTION_LABEL_START + i));
+      if (index < 0) return true;
+      const [mode, label] = QUEST_ACTIONS[index];
+      const effect = mode === "complete-all" ? "Completes quests and supported miniquests with rewards." : "Resets quest stages and points. Keeps rewards and may keep quest-specific progress.";
+      confirm(player, state, `${label} for ${state.target.getUsername()}? ${effect}`, { action: "quest-bulk", mode });
+      return true;
+    }
     function useTarget(player, state, target) {
       if (!online(target)) {
         tell(player, "Choose an online human player on this world.");
@@ -6861,6 +6892,7 @@ Spawn X places one item on each separate reachable tile.`,
       pluginApi.onInterfaceActionButton(uid(C.SELF_BUTTON), useSelf);
       pluginApi.onInterfaceActionButton(SKILL_BUTTONS, clickSkill);
       pluginApi.onInterfaceActionButton(PRESET_BUTTONS, clickPreset);
+      pluginApi.onInterfaceActionButton(QUEST_BUTTONS.map(uid), clickQuestAction);
       pluginApi.onCustomEvent("player:widget-action", searchSocket);
       pluginApi.onCustomEvent("player:world-input", mapTeleport);
       pluginApi.onCustomEvent("admin:open", openFromEvent);
