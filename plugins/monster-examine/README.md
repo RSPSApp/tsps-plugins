@@ -16,7 +16,7 @@ From the matching TSPS checkout root, with the client dependencies installed, bu
 The rebuild script requires [Hub #6](https://github.com/RSPSApp/tsps-plugins/pull/6).
 
 ```sh
-tsps="$PWD"
+tsps=/path/to/tsps
 hub=/path/to/tsps-plugins
 cd "$hub"
 npm ci
@@ -25,3 +25,7 @@ python3 scripts/package-plugin.py monster-examine
 ```
 
 The bundle includes the local helpers and the TSPS license notice. The Hub ZIP contains the bundled entry and manifest. Remove or disable the installed package through the normal Plugins workflow.
+
+## Screenshots
+
+![Vorkath stats and drop tables](vorkath-examine.webp)

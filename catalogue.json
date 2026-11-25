@@ -56,7 +56,8 @@
             "author": "GhostScape",
             "category": "@ Ghost Plugins @",
             "version": "1.0.0",
-            "description": "Native monster stats, accuracy estimates and grouped drops. Requires the matching TSPS client and read-only examine APIs."
+            "description": "Native monster stats, accuracy estimates and grouped drops. Requires the matching TSPS client and read-only examine APIs.",
+            "screenshot": "monster-examine.webp"
         }
     ]
 }
