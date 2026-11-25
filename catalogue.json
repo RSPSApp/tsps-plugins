@@ -49,6 +49,15 @@
             "category": "Community",
             "version": "1.0.0",
             "description": "Automates supported skilling, combat, and bank trips on your TSPS server. Fork-specific activities and desktop notifications require matching TSPS integrations."
+        },
+        {
+            "id": "monster-examine",
+            "name": "Monster Examine",
+            "author": "GhostScape",
+            "category": "@ Ghost Plugins @",
+            "version": "1.0.0",
+            "description": "Native monster stats, accuracy estimates and grouped drops. Requires the matching TSPS client and read-only examine APIs.",
+            "screenshot": "monster-examine.webp"
         }
     ]
 }
