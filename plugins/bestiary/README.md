@@ -17,3 +17,7 @@ python3 scripts/package-plugin.py bestiary
 ```
 
 The bundled entry includes its local helpers because Hub ZIPs contain one JavaScript entry and a manifest. Remove or disable the installed package through the normal Plugins workflow.
+
+## Screenshots
+
+![Searchable dragon catalogue](bestiary-window.webp)

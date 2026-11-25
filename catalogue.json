@@ -56,7 +56,8 @@
             "author": "GhostScape",
             "category": "@ Ghost Plugins @",
             "version": "1.0.0",
-            "description": "Search playable monsters and show their known public spawn locations. Requires the matching TSPS Bestiary client and encounter providers."
+            "description": "Search playable monsters and show their known public spawn locations. Requires the matching TSPS Bestiary client and encounter providers.",
+            "screenshot": "bestiary.webp"
         }
     ]
 }
