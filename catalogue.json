@@ -49,6 +49,15 @@
             "category": "Community",
             "version": "1.0.0",
             "description": "Automates supported skilling, combat, and bank trips on your TSPS server. Fork-specific activities and desktop notifications require matching TSPS integrations."
+        },
+        {
+            "id": "bestiary",
+            "name": "Bestiary",
+            "author": "GhostScape",
+            "category": "@ Ghost Plugins @",
+            "version": "1.0.0",
+            "description": "Search playable monsters and show their known public spawn locations. Requires the matching TSPS Bestiary client and encounter providers.",
+            "screenshot": "bestiary.webp"
         }
     ]
 }

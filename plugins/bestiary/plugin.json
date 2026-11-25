@@ -1,0 +1,8 @@
+{
+    "format": 1,
+    "id": "bestiary",
+    "name": "Bestiary",
+    "version": "1.0.0",
+    "description": "Search playable monsters and show their known public spawn locations. Requires the matching TSPS Bestiary client and encounter providers.",
+    "category": "@ Ghost Plugins @"
+}
