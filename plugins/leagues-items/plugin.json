@@ -1,0 +1,7 @@
+{
+    "format": 1,
+    "id": "leagues-items",
+    "name": "LeaguesItems",
+    "version": "1.0.0",
+    "description": "Adds 15 OSRS Leagues items to main worlds—including teleports, storage containers, utility relics, and combat gear—each individually toggleable in plugin config."
+}

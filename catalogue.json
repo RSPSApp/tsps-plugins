@@ -49,6 +49,15 @@
             "category": "Community",
             "version": "1.0.0",
             "description": "Automates supported skilling, combat, and bank trips on your TSPS server. Fork-specific activities and desktop notifications require matching TSPS integrations."
+        },
+        {
+            "id": "leagues-items",
+            "name": "Leagues Items",
+            "author": "Stove",
+            "category": "Community",
+            "version": "1.0.0",
+            "description": "Adds 15 OSRS Leagues items to main worlds—including teleports, storage containers, utility relics, and combat gear—each individually toggleable in plugin config.",
+            "screenshot": "leagues-items.webp"
         }
     ]
 }
