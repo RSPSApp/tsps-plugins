@@ -1,6 +1,6 @@
 # Leagues Items
 
-Adds 14 items from the OSRS Leagues game modes to main (non-league) worlds. On league worlds, every handler defers to the server's built-in league relic handlers.
+Adds 15 items from the OSRS Leagues game modes to main (non-league) worlds. On league worlds, every handler defers to the server's built-in league relic handlers.
 
 ## Included items
 
@@ -20,6 +20,7 @@ Adds 14 items from the OSRS Leagues game modes to main (non-league) worlds. On l
 | **Minion whistle** | `28769` | Summons a 30-minute demonic minion that upgrades with unique Zamorak items, plus `Banish`, `Rules`, and `Check` |
 | **Sage's axe** | `28773` | 6-tile (8 Longrange) thrown weapon that executes NPCs below 20% HP (sparing Yama & Gemstone Crab) |
 | **Searing boots** | `28771` | Running Agility XP plus automatic cooking of caught fish and smelting of mined ore |
+| **Knapsack** | `33218` / `33220` | 140-cap / 3-kind gathered item container (toggleable on main worlds) |
 
 ## Configuration
 

@@ -18,8 +18,9 @@
  * - Minion whistle (28769): demonic minion summon, Zamorak item upgrades, Rules/Banish/Check
  * - Sage's axe (28773): 6/8-tile thrown weapon executing NPCs <20% HP
  * - Searing boots (28771): running Agility XP, auto-cook caught fish, auto-smelt mined ore
+ * - Knapsack (33218/33220): 140-cap / 3-kind gathered item container (toggleable on main worlds)
  *
- * Note: Knapsack (33218/33220) and Shadowflame quadrant (33253) already work natively on main worlds.
+ * Note: Shadowflame quadrant (33253) already works natively on main worlds.
  * On league worlds, every handler defers to the server's built-in league relic handlers.
  */
 
@@ -38,6 +39,7 @@ const CONFIG = {
   "leagues-items:minion-whistle": { type: "boolean", default: true, label: "Minion whistle", help: "Enable Minion whistle (28769) demonic minion summon and Zamorak item upgrades on main worlds." },
   "leagues-items:sages-axe": { type: "boolean", default: true, label: "Sage's axe", help: "Enable Sage's axe (28773) 6/8-tile thrown execute (<20% HP) on main worlds." },
   "leagues-items:searing-boots": { type: "boolean", default: true, label: "Searing boots", help: "Enable Searing boots (28771) running Agility XP and auto-cook/auto-smelt on main worlds." },
+  "leagues-items:knapsack": { type: "boolean", default: true, label: "Knapsack", help: "Enable Knapsack (33218/33220) actions and item storage on main worlds." },
 };
 
 const ANY_WILDERNESS_LEVEL = 60;
@@ -156,6 +158,7 @@ const CONFIG_KEYS = {
   minionWhistle: "leagues-items:minion-whistle",
   sagesAxe: "leagues-items:sages-axe",
   searingBoots: "leagues-items:searing-boots",
+  knapsack: "leagues-items:knapsack",
 };
 
 function enabled(key) {
@@ -2161,6 +2164,30 @@ module.exports = {
     api.onCustomEvent("storage:gather", searingGatherProcess);
     api.onCustomEvent("storage:gather", searingGatherDeliver);
     api.onPlayerLogin(searingWatchLogin);
+
+    // Knapsack (built-in StorageItems handles it when enabled; intercept when toggled off on main worlds)
+    const blockKnapsack = (event) => {
+      if (enabled("knapsack") || inLeague(event.player)) return;
+      event.handled = true;
+    };
+    api.onItemAction("Knapsack", {
+      Fill: blockKnapsack,
+      Check: blockKnapsack,
+      Open: blockKnapsack,
+      Close: blockKnapsack,
+      Dispose: blockKnapsack,
+    });
+    api.onItemOnItem((event) => {
+      if (enabled("knapsack") || inLeague(event.player)) return;
+      const a = event.usedItem?.getDefinition?.()?.getName?.();
+      const b = event.usedWithItem?.getDefinition?.()?.getName?.();
+      if (a === "Knapsack" || b === "Knapsack") event.handled = true;
+    });
+    api.onCustomEvent(core.Bank.INVENTORY_OP_EVENT, (event) => {
+      if (enabled("knapsack") || inLeague(event.player)) return;
+      const name = core.CacheDefinitions.getItem(event.itemId)?.name;
+      if (name === "Knapsack") event.handled = true;
+    });
   },
   _test: { DATA, CONFIG },
 };
