@@ -56,7 +56,7 @@
             "author": "Stove",
             "category": "Community",
             "version": "1.0.0",
-            "description": "Adds items from the Leagues game modes to the main game - Clue compass, Fairy mushroom, Forager's pouch, Map of alacrity, Crystal of Echoes, Leprechaun's vault, Banker's briefcase, Evil eye, Arcane grimoire, Flask of fervour, Butler's bell, Minion whistle, Sage's axe, Searing boots, and Knapsack.",
+            "description": "Adds 15 OSRS Leagues items to main worlds—including teleports, storage containers, utility relics, and combat gear—each individually toggleable in plugin config.",
             "screenshot": "leagues-items.webp"
         }
     ]
